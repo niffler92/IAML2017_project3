@@ -6,3 +6,5 @@
 
 ## Related works
 * [https://github.com/jsleep/wav2mid](https://github.com/jsleep/wav2mid)
+
+**Directory dataset/ is not included. Add it manually**
