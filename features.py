@@ -1,9 +1,14 @@
-
 import os
+import time
+
 import numpy as np
 from scipy import stats
 import pandas as pd
 import librosa
+from tqdm import tqdm
+from joblib import Parallel, delayed
+
+from settings import PROJECT_ROOT
 
 
 def compute_mfcc_example(tids):
@@ -122,5 +127,5 @@ def feature_examples(tid):
 
 
 def get_audio_path(audio_dir, track_id):
-    return os.path.join(audio_dir, track_id + '.wav')
+    return os.path.join(PROJECT_ROOT, audio_dir, track_id + '.wav')
 

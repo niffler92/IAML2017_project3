@@ -6,9 +6,13 @@ __pycache__/
 # Exclude dataset/
 dataset/
 
+# .idea/
+.idea/
+
 # C extensions
 *.so
 *.mp3
+
 
 # Distribution / packaging
 .Python
