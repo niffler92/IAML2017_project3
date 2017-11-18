@@ -1,4 +1,5 @@
 # Project3: Drum transcription
+Before Going: Dump audio data into pickle -> `python features.py` (develop)
 
 ## Papers
 * [Recurrent Neural Networks For Drum Transcription, Vogl et al](http://www.cp.jku.at/research/papers/Vogl_etal_ISMIR_2016.pdf)
