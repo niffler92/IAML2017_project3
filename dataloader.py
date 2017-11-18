@@ -1,27 +1,42 @@
+import os
+import pickle
+import time
+from random import shuffle
+
 import numpy as np
 import pandas as pd
-import features
-import pickle
-'''
 
-'''
-class dataLoader():
-    def __init__(self, drum_list_path, label_path, batch_size, val_set_number = 0, is_train_mode = True):
+import features
+from settings import PROJECT_ROOT
+
+
+class DataLoader():
+    def __init__(self,
+                 drum_list_path,
+                 label_path,
+                 batch_size,
+                 feature_names=['mfcc'],
+                 val_set_number=0,
+                 is_training=True):
         '''
-        :param drum_list_path: file path for track_metadata.csv
-        :param label_path: label path
+        :param feature_names: list of features to use
+        :param drum_list_path: 'dataset/audio_list.csv'
+        :param label_path: 'dataset/labels.pkl'
         :param batch_size:
         :param label_column_name: column name of label (project 1: track_genre_top, project 2: listens)
+        :param val_set_number: validation number for Cross-validation
         :param is_training: training / validation mode
         '''
-        self.batch_size = batch_size
-        self.token_stream = []
         self.drum_list_path = drum_list_path
+        self.metadata_df = pd.read_csv(self.drum_list_path)
+        self.batch_size = batch_size
+        self.feature_names = feature_names
         self.labels = pickle.load(open(label_path, 'rb'))
-        self.train = is_train_mode
         self.val_set_number = val_set_number
+        self.is_training = is_training
+        self.dataset = None
         self.create_batches()
-
+        self.batch_gen = self.batch_generator()
 
 
     def create_batches(self):
@@ -29,40 +44,71 @@ class dataLoader():
 
         :return:
         '''
-        self.metadata_df = pd.read_csv(self.drum_list_path)
+        data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
+        all_tids = self.metadata_df.FileName.tolist()
 
-        if self.train:
+        if self.is_training:
             self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.val_set_number]
         else:
             self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.val_set_number]
 
-        self.metadata_df = self.metadata_df.sample(frac=1).reset_index(drop=True)
+        for idx, feature_name in enumerate(self.feature_names):
+            features.maybe_create_data_file(feature_name, all_tids)
+            st = time.time()
+            print("Loading data file {}.pkl ...".format(feature_name))
+            data_file_path = os.path.join(data_dir, '{}.pkl'.format(feature_name))
+            print("Loading is done. Took {} seconds.".format(time.time() - st))
+            if idx == 0:
+                self.dataset = np.load(data_file_path)
+            else:  # Stack
+                self.dataset = np.concatenate(
+                    (self.dataset, np.load(data_file_path)),
+                    axis=1)
+
+        self.dataset = self.dataset[self.metadata_df.index]
+        self.metadata_df.reset_index(drop=True, inplace=True)
 
         self.num_batch = int(len(self.metadata_df) / self.batch_size)
         self.pointer = 0
+
+
+    def batch_generator(self):
+
+        while True:
+            if self.pointer % self.num_batch == 0:  # Shuffle every epoch
+                ind_list = [i for i in range(len(self.metadata_df))]
+                shuffle(ind_list)
+                self.dataset = self.dataset[ind_list]
+                self.metadata_df = self.metadata_df.iloc[ind_list, :]
+                self.metadata_df.reset_index(drop=True, inplace=True)
+
+            start_pos = self.pointer * self.batch_size
+            batch_meta_df = self.metadata_df.iloc[start_pos:(start_pos+self.batch_size)]
+            batch_track_ids = batch_meta_df['FileName']
+
+            self.pointer = (self.pointer + 1) % (self.num_batch)
+
+            yield (np.expand_dims(self.dataset[batch_track_ids.index], axis=3),  # (B, H, W, C=1)
+                   self.get_labels(batch_track_ids),
+                   batch_track_ids.values)
 
     def next_batch(self):
         '''
 
         :return: feature array, label array (one-hot encoded)
         '''
-        self.pointer = (self.pointer + 1) % self.num_batch
+        return next(self.batch_gen)
 
-        start_pos = self.pointer * self.batch_size
-        meta_df = self.metadata_df.iloc[start_pos:(start_pos+self.batch_size)]
-        # TODO: load features
-        track_ids = meta_df['FileName'].values
-        valid_ids, valid_features = features.compute_mfcc_example(track_ids)
-        return valid_features, self.get_labels(valid_ids)
 
     def reset_pointer(self):
         self.pointer = 0
+
 
     def get_labels(self, name_list):
         # get labels from label dictionary
         # [[list of hihats],[list of kicks], [list of snares],
         #   [list of hihats],[list of kicks], [list of snares]],...
-        print("name_list", name_list)
+        # print("name_list", name_list)
         labels = []
         for x in name_list:
             labels.append(self.labels[x])
@@ -73,7 +119,7 @@ class dataLoader():
 if __name__ == "__main__":
     # for test
 
-    training_loader = dataLoader('dataset/audio_list.csv', 'dataset/labels.pkl', 32, val_set_number = 0, is_train_mode=True)
+    training_loader = dataLoader('dataset/audio_list.csv', 'dataset/labels.pkl', 32, val_set_number = 0, is_training=True)
     valid_loader = dataLoader('dataset/audio_list.csv', 'dataset/labels.pkl', 32, val_set_number = 0, is_train_mode=True)
 
 
