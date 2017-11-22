@@ -13,21 +13,20 @@ from preprocess import Preprocessor
 
 class DataLoader():
     def __init__(self,
-                 drum_list_path,
-                 label_path,
-                 batch_size,
-                 args,
+                 drum_list_path="dataset/audio_list.csv",
+                 label_path="dataset/labels.pkl",
                  feature_names=['mfcc'],
+                 batch_size=32
+                 preprocess_args=None,
                  val_set_number=0,
                  is_training=True,
                  ):
         '''
-        :param feature_names: list of features to use
         :param drum_list_path: 'dataset/audio_list.csv'
         :param label_path: 'dataset/labels.pkl'
+        :param feature_names: list of features to use
         :param batch_size:
-        :param args:
-        :param label_column_name: column name of label (project 1: track_genre_top, project 2: listens)
+        :param preprocess_args:
         :param val_set_number: validation number for Cross-validation
         :param is_training: training / validation mode
         '''
@@ -41,8 +40,10 @@ class DataLoader():
         self.dataset = None
         self.create_batches()  # Get Train or Validation
         assert self.dataset is not None
-        preprocessor = Preprocessor(self.dataset)
-        self.dataset = preprocessor.run(args, is_training)
+
+        if preprocess_args is not None:
+            preprocessor = Preprocessor(self.dataset)
+            self.dataset = preprocessor.run(args, is_training)
 
         self.batch_gen = self.batch_generator()
 

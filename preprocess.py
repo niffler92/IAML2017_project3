@@ -44,10 +44,10 @@ class Preprocessor:
             if args.normalize == True:
                 assert args.norm_type is not None
                 X = self.normalize(X, norm_type)
-            if args.normalize_by_row == True:
+            elif args.normalize_by_row == True:
                 assert args.norm_type is not None
                 X = self.normalize_by_row(X, norm_type)
-            if args.bilinear == True:
+            if args.bilinear_resize == True:
                 X = self.bilinear_resize(X)
 
         elif isinstance(args, dict):
