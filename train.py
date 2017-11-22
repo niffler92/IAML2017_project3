@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # Common Arguments
     parser.add_argument("--model", default="", type=str)
-    parser.add_argument("--features", default=["mfcc"], nargs="+")
+    parser.add_argument("--features", default=["mfcc", "melspectrogram", "rmse"], nargs="+")
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--checkpoint_path", default="", type=str,
                         help="Checkpoint can be used to load pretrained weight")
@@ -101,6 +101,8 @@ def train(model, dataloader, session, args):
                            global_step=model.global_step)
                 # log.info("[Step:{}] Save checkpoint: {}".format(step, args.train_dir))
 
+        valid_full(model, dataloader, session, args)
+
         elapsed_time = time.time() - st
         real_epoch = int(step / total_batch)
         log.info("Step: {:5d} | Epoch: {:3d} | Elapsed time: {:3.2f} | "
@@ -145,6 +147,10 @@ def _set_saver(session, args):
         log.info("No designated checkpoint path. Initializing weights randomly.")
 
     return saver
+
+
+def valid_full():
+    pass
 
 
 if __name__ == '__main__':

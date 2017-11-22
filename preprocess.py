@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 from sklearn import preprocessing
 from PIL import Image
@@ -18,7 +19,7 @@ class Preprocessor:
             self.gamma_mel = args['gamma_mel']
             self.norm_type = args['norm_type']
             self.target_height = args['target_height']
-        elif isinstance(args, args.Namespace):
+        elif isinstance(args, argparse.Namespace):
             self.gamma_mel = args.gamma_mel
             self.norm_type = args.norm_type
             self.target_height = args.target_height
