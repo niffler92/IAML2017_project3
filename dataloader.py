@@ -8,6 +8,7 @@ import pandas as pd
 
 import features
 from settings import PROJECT_ROOT
+from preprocess import Preprocessor
 
 
 class DataLoader():
@@ -15,14 +16,17 @@ class DataLoader():
                  drum_list_path,
                  label_path,
                  batch_size,
+                 args,
                  feature_names=['mfcc'],
                  val_set_number=0,
-                 is_training=True):
+                 is_training=True,
+                 ):
         '''
         :param feature_names: list of features to use
         :param drum_list_path: 'dataset/audio_list.csv'
         :param label_path: 'dataset/labels.pkl'
         :param batch_size:
+        :param args:
         :param label_column_name: column name of label (project 1: track_genre_top, project 2: listens)
         :param val_set_number: validation number for Cross-validation
         :param is_training: training / validation mode
@@ -35,7 +39,11 @@ class DataLoader():
         self.val_set_number = val_set_number
         self.is_training = is_training
         self.dataset = None
-        self.create_batches()
+        self.create_batches()  # Get Train or Validation
+        assert self.dataset is not None
+        preprocessor = Preprocessor(self.dataset)
+        self.dataset = preprocessor.run(args, is_training)
+
         self.batch_gen = self.batch_generator()
 
 
