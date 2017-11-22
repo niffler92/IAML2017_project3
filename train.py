@@ -1,7 +1,7 @@
 import time
 import os
 import argparse
-from pathlib import Path
+# from pathlib import Path
 import json
 
 import tensorflow as tf
@@ -28,12 +28,12 @@ if __name__ == '__main__':
     parser.add_argument("--val_set_number", default=0, type=int)
 
     # Preprocessing
-    parser.add_argument("--normalize", default=False, type=bool)
-    parser.add_argument("--normalize_by_row", default=False, type=bool)
-    parser.add_argument("--norm_type", default=None, type=str)
-    parser.add_argument("--bilinear_resize", default=None, type=bool)
+    parser.add_argument("--gamma_mel", default=0.2, type=float)
+    parser.add_argument("--norm_type", default=2, type=int)
+    parser.add_argument("--target_height", default=8, type=int)
+
     # Train
-    parser.add_argument("--train_dir", default="", type=str)
+    parser.add_argument("--train_dir", default="train_dir", type=str)
     parser.add_argument("--step_save_summaries", default=10, type=int)
     parser.add_argument("--step_save_checkpoint", default=40, type=int)
     parser.add_argument("--max_ckpt_to_keep", default=3, type=int)
@@ -132,7 +132,8 @@ def _set_saver(session, args):
     session.run(tf.local_variables_initializer())
 
     if args.checkpoint_path is not "":
-        if Path(args.checkpoint_path).is_dir():
+        # if Path(args.checkpoint_path).is_dir():
+        if os.path.isdir(args.checkpoint_path): # for python 2.7 compatibility (need to be confirmed)
             old_checkpoint_path = args.checkpoint_path
             args.checkpoint_path = tf.train.latest_checkpoint(args.checkpoint_path)
             log.info("Update checkpoint_path: {} -> {}".format(

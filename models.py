@@ -61,7 +61,8 @@ class BaseModel:
 
 class ConvPool(BaseModel):  # FIXME Example
     def __init__(self, args):
-        super().__init__(args)
+        # super().__init__(args)
+        super(BaseModel, self).__init__(args) # for python 2.7 compatibility (need to be confirmed)
 
     def _create_placeholders(self):
         self.x = tf.placeholder(dtype=tf.float32, shape=[None, self.args.height, self.args.width, 1], name="x")

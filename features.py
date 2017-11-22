@@ -7,6 +7,7 @@ import librosa
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from settings import PROJECT_ROOT
 
@@ -98,7 +99,7 @@ def compute_feature(feature_name, tid):
         # returns not checked
         elif feature_name == 'melspectrogram':
             f = librosa.feature.melspectrogram(sr=sr, S=stft ** 2)
-            f = librosa.power_to_db(f, ref=np.max)
+            # f = librosa.power_to_db(f, ref=np.max)
         # mfcc
         # returns (n_mfcc, t)
         elif feature_name == 'mfcc':
