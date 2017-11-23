@@ -49,6 +49,10 @@ class DataLoader():
         self.batch_gen = self.batch_generator()
 
 
+    def set_args(self, args):
+        self.preprocess_args = args
+
+
     def create_batches(self):
         '''
 

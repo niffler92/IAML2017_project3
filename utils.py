@@ -1,11 +1,10 @@
 import json
 import logging
 from datetime import datetime
-
 # from pathlib import Path
 import os
-
 import settings
+import numpy as np
 
 
 def get_logger(logger_name, log_file=None, level=logging.DEBUG):
@@ -66,3 +65,46 @@ def load_args(args, filename="train_params.json"):
         result = json.load(fp)
 
     return result
+
+
+def get_random_param(param_list_dict):
+    param_dict = dict()
+    for key, val_list in param_list_dict.items():
+        len_param = len(val_list)
+        index = np.random.randint(len_param)
+        val = val_list[index]
+        param_dict[key] = val
+
+    return param_dict
+
+
+def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc):
+    filename = param_dict['train_batch_result_filename']
+
+    if not os.path.exists(filename):
+        file = open(filename, 'w')
+        for key in param_dict.keys():
+            file.write(key + '\t')
+        file.write('train_cost\t')
+        file.write('train_acc\t')
+        file.write('valid_cost\t')
+        file.write('valid_acc\n')
+    else:
+        file = open(filename, 'a')
+
+    for key in param_dict.keys():
+        param = param_dict[key]
+        if type(param) == str:
+            file.write('%s\t' % param)
+        elif type(param) == int:
+            file.write('%d\t' % param)
+        elif type(param) == float:
+            file.write('%f\t' % param)
+        else:
+            raise ValueError('param type error')
+
+    file.write('%f\t' % (train_cost))
+    file.write('%f\t' % (train_acc))
+    file.write('%f\t' % (valid_cost))
+    file.write('%f\n' % (valid_acc))
+    file.close()
