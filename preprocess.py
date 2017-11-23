@@ -77,7 +77,7 @@ class Preprocessor:
         rmse_index = feature_indices['rmse']
 
         if norm_type == 0:
-            return
+            return X
         elif norm_type == 1:
             features_mfcc = X[:, mfcc_index, :]
             features_mel = X[:, mel_index, :]
