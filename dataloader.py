@@ -2,6 +2,7 @@ import os
 import pickle
 import time
 from random import shuffle
+import copy
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ class DataLoader():
         :param label_path: 'dataset/labels.pkl'
         :param feature_names: list of features to use
         :param batch_size:
-        :param preprocess_args:
+        :param preprocess_args: (dict)
         :param val_set_number: validation number for Cross-validation
         :param is_training: training / validation mode
         '''
@@ -36,21 +37,50 @@ class DataLoader():
         self.batch_size = batch_size
         self.feature_names = feature_names
         self.labels = pickle.load(open(label_path, 'rb'))
-        self.val_set_number = val_set_number
+        #self.val_set_number = val_set_number
         self.is_training = is_training
         self.preprocess_args = preprocess_args
 
         self.dataset = None
-        self.create_batches()  # Get Train or Validation
+        self.create_dataset_org()
         assert self.dataset is not None
+
+        self.dataset_org = copy.deepcopy(self.dataset)
+        self.metadata_df_org = self.metadata_df.copy(deep=True)
+
+        #self.create_batches()
+        #preprocessor = Preprocessor(self.dataset, preprocess_args, is_training, feature_names)
+        #self.dataset = preprocessor.run()
+        #self.batch_gen = self.batch_generator()
+
+
+    def reset_args(self, args):
+        self.preprocess_args = args
+        self.dataset = copy.deepcopy(self.dataset_org)
+        self.metadata_df = self.metadata_df_org.copy(deep=True)
+        self.create_batches()  # Get Train/Validation from original
 
         preprocessor = Preprocessor(self.dataset, preprocess_args, is_training, feature_names)
         self.dataset = preprocessor.run()
         self.batch_gen = self.batch_generator()
 
 
-    def set_args(self, args):
-        self.preprocess_args = args
+    def create_dataset_org(self):
+        data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
+        all_tids = self.metadata_df.FileName.tolist()
+
+        for idx, feature_name in enumerate(self.feature_names):
+            features.maybe_create_data_file(feature_name, all_tids)
+            st = time.time()
+            print("Loading data file {}.pkl ...".format(feature_name))
+            data_file_path = os.path.join(data_dir, '{}.pkl'.format(feature_name))
+            print("Loading is done. Took {} seconds.".format(time.time() - st))
+            if idx == 0:
+                self.dataset_org = np.load(data_file_path)
+            else:  # Stack
+                self.dataset_org = np.concatenate(
+                    (self.dataset, np.load(data_file_path)),
+                    axis=1)
 
 
     def create_batches(self):
@@ -62,22 +92,9 @@ class DataLoader():
         all_tids = self.metadata_df.FileName.tolist()
 
         if self.is_training:
-            self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.val_set_number]
+            self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.preprocess_args['val_set_number']]
         else:
-            self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.val_set_number]
-
-        for idx, feature_name in enumerate(self.feature_names):
-            features.maybe_create_data_file(feature_name, all_tids)
-            st = time.time()
-            print("Loading data file {}.pkl ...".format(feature_name))
-            data_file_path = os.path.join(data_dir, '{}.pkl'.format(feature_name))
-            print("Loading is done. Took {} seconds.".format(time.time() - st))
-            if idx == 0:
-                self.dataset = np.load(data_file_path)
-            else:  # Stack
-                self.dataset = np.concatenate(
-                    (self.dataset, np.load(data_file_path)),
-                    axis=1)
+            self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.preprocess_args['val_set_number']]
 
         self.dataset = self.dataset[self.metadata_df.index]
         self.metadata_df.reset_index(drop=True, inplace=True)

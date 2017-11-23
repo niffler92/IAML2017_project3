@@ -6,7 +6,7 @@ import json
 
 import tensorflow as tf
 import numpy as np
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, f1_score
 
 
 from dataloader import DataLoader
@@ -38,8 +38,7 @@ if __name__ == '__main__':
     # Train
     parser.add_argument("--train_dir", default="train_dir", type=str)
     parser.add_argument("--step_save_summaries", default=10, type=int)
-    parser.add_argument("--step_save_checkpoint", default=40, type=int)
-    parser.add_argument("--max_ckpt_to_keep", default=3, type=int)
+    praser.add_argument("--no_save_ckpt", default=False, type=int)
     parser.add_argument("--max_epochs", default=500, type=int)
 
     # Train Parameters
@@ -68,16 +67,22 @@ def main(args):
     train(model, train_dataloader, session, args)
 
 
-def train(model, dataloader, session, args):
+def train(model, train_dataloader, valid_dataloader, session, args):
+    """
+    Args:
+        args (dict)
+    """
     saver = _set_saver(session, args)
     summary_op = _create_summaries(model)
-    summary_writer = tf.summary.FileWriter(args.train_dir, session.graph)
+    summary_writer = tf.summary.FileWriter(args['train_dir'], session.graph)
 
     log.info("Training start")
     total_params = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
     log.info("Number of total parameters : {}".format(total_params))
-    total_batch = dataloader.num_batch
-    for epoch in range(args.max_epochs):
+    total_batch = train_dataloader.num_batch
+
+    valid_acc = 0
+    for epoch in range(args['max_epochs']):
         avg_loss = 0
         avg_acc = 0
         st = time.time()
@@ -85,75 +90,136 @@ def train(model, dataloader, session, args):
         y_trues = []
 
         for _ in range(total_batch):
-            batch_x, batch_y, track_ids = dataloader.next_batch()
+            batch_x, batch_y, track_ids = train_dataloader.next_batch()
             _, loss_, acc_, step, summary, y_pred, y_true = session.run(
                 [model.train_op, model.loss, model.accuracy_op, model.global_step, summary_op,
                  model.y_pred, model.y_true], feed_dict={model.x: batch_x, model.y: batch_y})
 
             avg_loss += loss_ / total_batch
             avg_acc += acc_ / total_batch
-            y_preds += y_pred.ravel().tolist()
+            y_preds += y_pred.ravel().tolist()  # (1, 600)
             y_trues += y_true.ravel().tolist()
 
-            if step % args.step_save_summaries == 0:
+            if step % args['step_save_summaries'] == 0:
                 summary_writer.add_summary(summary, global_step=step)
-                # log.info("[Step:{}] Save training summary: {}".format(step, args.train_dir))
-            if step % args.step_save_checkpoint == 0:
-                saver.save(session,
-                           os.path.join(args.train_dir, args.model) + "-bs{}".format(args.batch_size),
-                           global_step=model.global_step)
-                # log.info("[Step:{}] Save checkpoint: {}".format(step, args.train_dir))
 
-        valid_full(model, dataloader, session, args)
+        new_valid_acc = valid_full(step, summary_writer, model, valid_dataloader, session, args)
+
+        if not args['no_save_ckpt']:
+            if new_valid_acc > valid_acc:
+                saver.save(session,
+                           os.path.join(args['train_dir'], args['model']) + "-bs{}".format(args['batch_size']))
+                           # global_step=model.global_step)  # no step
+                valid_acc = new_valid_acc
+
 
         elapsed_time = time.time() - st
         real_epoch = int(step / total_batch)
+        print("#######################TRAIN#########################")
         log.info("Step: {:5d} | Epoch: {:3d} | Elapsed time: {:3.2f} | "
                  "Epoch loss: {:.5f} | Epoch accuracy: {:.5f}".format(
                     int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
 
-        for line in classification_report(y_trues, y_preds).split("\n"):
-            print(line)
-        print(confusion_matrix(y_trues, y_preds))
+        # TODO: Report F1, precision, recall by Instrument and Overall
+        #for line in classification_report(y_trues, y_preds).split("\n"):
+        #    print(line)
+        #print(confusion_matrix(y_trues, y_preds))
 
     log.info("Training Finished!")
     session.close()
     summary_writer.close()
 
 
-def _create_summaries(model):
-    with tf.name_scope("summaries/train"):
-        tf.summary.scalar("loss", model.loss)
-        tf.summary.histogram("histogram_loss", model.loss)
-        tf.summary.scalar("accuracy", model.accuracy_op)
+def valid_full(step, summary_writer, model, valid_dataloader, session, args):
+    """
+    Args:
+        args (dict)
+    """
+    total_batch = valid_dataloader.num_batch
+    avg_loss = 0
+    avg_acc = 0
+    st = time.time()
+    y_preds = []
+    y_trues = []
 
-    summaries = tf.summary.merge_all()
+    for _ in range(total_batch):
+        batch_x, batch_y, track_ids = train_dataloader.next_batch()
+        loss_, acc_, step, y_pred, y_true = session.run(
+            [model.loss, model.accuracy_op, model.global_step,
+             model.y_pred, model.y_true], feed_dict={model.x: batch_x, model.y: batch_y})
+
+
+        avg_loss += loss_ / total_batch
+        avg_acc += acc_ / total_batch
+        # y_pred (3, 200)
+        y_preds += y_pred.ravel().tolist()
+        y_trues += y_true.ravel().tolist()
+
+
+    summary_op = _create_valid_summaries(avg_loss, avg_acc, y_preds, y_trues)
+    summary = session.run(summary_op)
+
+    if step % args['step_save_summaries'] == 0:
+        summary_writer.add_summary(summary, global_step=step)
+
+    elapsed_time = time.time() - st
+    real_epoch = int(step / total_batch)
+    print("#######################VALID#########################")
+    log.info("Step: {:5d} | Epoch: {:3d} | Elapsed time: {:3.2f} | "
+             "Valid loss: {:.5f} | Valid accuracy: {:.5f}".format(
+                int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
+
+    #for line in classification_report(y_trues, y_preds).split("\n"):
+    #    print(line)
+    #print(confusion_matrix(y_trues, y_preds))
+
+    return avg_acc
+
+
+def _create_train_summaries(model):
+    with tf.name_scope("summaries/train"):
+        summaries = tf.summary.merge([
+            tf.summary.scalar("loss", model.loss)
+            tf.summary.histogram("histogram_loss", model.loss)
+            tf.summary.scalar("accuracy", model.accuracy_op)
+            tf.summary.scalar("F1_score", tf.constant(
+                f1_score(tf.reshape(model.y_trues, [-1]), tf.reshape(model.y_preds, [-1]))))
+        ])
+
+    return summaries
+
+
+def _create_valid_summaries(loss, acc, y_preds, y_trues):
+    with tf.name_scope("summaries/valid"):
+        summaries = tf.summary.merge([
+            tf.summary.scalar("loss", tf.constant(loss))
+            tf.summary.histogram("histogram_loss", tf.constant(loss))
+            tf.summary.scalar("accuracy", tf.constant(acc))
+            tf.summary.scalar("F1_score", tf.constant(f1_score(y_trues, y_preds)))
+        ])
+
     return summaries
 
 
 def _set_saver(session, args):
-    saver = tf.train.Saver(tf.global_variables(), max_to_keep=args.max_to_keep)
+    saver = tf.train.Saver(tf.global_variables())
     session.run(tf.global_variables_initializer())
     session.run(tf.local_variables_initializer())
 
-    if args.checkpoint_path is not "":
+    if args['checkpoint_path'] is not "":
         # if Path(args.checkpoint_path).is_dir():
-        if os.path.isdir(args.checkpoint_path): # for python 2.7 compatibility (need to be confirmed)
-            old_checkpoint_path = args.checkpoint_path
-            args.checkpoint_path = tf.train.latest_checkpoint(args.checkpoint_path)
+        if os.path.isdir(args['checkpoint_path']): # for python 2.7 compatibility (need to be confirmed)
+            old_checkpoint_path = args['checkpoint_path']
+            args['checkpoint_path'] = tf.train.latest_checkpoint(args['checkpoint_path'])
             log.info("Update checkpoint_path: {} -> {}".format(
-                old_checkpoint_path, args.checkpoint_path)
+                old_checkpoint_path, args['checkpoint_path'])
             )
-        saver.restore(session, args.checkpoint_path)
-        log.info("Restore from {}".format(args.checkpoint_path))
+        saver.restore(session, args['checkpoint_path'])
+        log.info("Restore from {}".format(args['checkpoint_path']))
     else:
         log.info("No designated checkpoint path. Initializing weights randomly.")
 
     return saver
-
-
-def valid_full():
-    pass
 
 
 if __name__ == '__main__':

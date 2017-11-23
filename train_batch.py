@@ -13,13 +13,13 @@ def train_batch():
   train_dataloader = DataLoader(feature_names=param_dict['features'],
                                 batch_size=param_dict['batch_size'],
                                 preprocess_args=param_dict,
-                                val_set_number=0,
+                                #val_set_number=0,
                                 is_training=True)
 
   valid_dataloader = DataLoader(feature_names=param_dict['features'],
-                                batch_size=param_dict['batch_size'],
+                                batch_size=29,  # 1?
                                 preprocess_args=param_dict,
-                                val_set_number=0,
+                                #val_set_number=0,
                                 is_training=False)
 
   model = utils.find_class_by_name([models], param_dict['model'])(param_dict)
@@ -41,10 +41,10 @@ def train_batch():
 
     for val_set_num in range(3):
       param_dict['val_set_number'] = val_set_num
-      train_dataloader.set_args(param_dict)
-      valid_dataloader.set_args(param_dict)
+      train_dataloader.reset_args(param_dict)
+      valid_dataloader.reset_args(param_dict)
 
-      train_loss, train_acc, valid_loss, valid_acc = train(model, train_dataloader, session, param_dict)
+      train_loss, train_acc, valid_loss, valid_acc = train(model, train_dataloader, valid_dataloader, session, param_dict)
       train_loss_list.append(train_loss)
       train_acc_list.append(train_acc)
       valid_loss_list.append(valid_loss)
