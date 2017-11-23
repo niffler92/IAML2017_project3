@@ -9,6 +9,7 @@ import pandas as pd
 import features
 from settings import PROJECT_ROOT
 from preprocess import Preprocessor
+from augmentation import Augmentation
 import matplotlib.pyplot as plt
 
 class DataLoader():
@@ -37,6 +38,7 @@ class DataLoader():
         self.labels = pickle.load(open(label_path, 'rb'))
         self.val_set_number = val_set_number
         self.is_training = is_training
+        self.preprocess_args = preprocess_args
 
         self.dataset = None
         self.create_batches()  # Get Train or Validation
@@ -101,10 +103,13 @@ class DataLoader():
 
     def next_batch(self):
         '''
-
         :return: feature array, label array (one-hot encoded)
         '''
-        return next(self.batch_gen)
+        features, label_onehot, titles = next(self.batch_gen)
+        augmentation = Augmentation(features, self.preprocess_args, self.is_training)
+        features = augmentation.run()
+
+        return features, label_onehot, titles
 
 
     def reset_pointer(self):

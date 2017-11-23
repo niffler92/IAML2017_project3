@@ -32,6 +32,9 @@ if __name__ == '__main__':
     parser.add_argument("--norm_type", default=2, type=int)
     parser.add_argument("--target_height", default=8, type=int)
 
+    # Augmentation
+    parser.add_argument("--max_noise", default=1.0, type=float)
+
     # Train
     parser.add_argument("--train_dir", default="train_dir", type=str)
     parser.add_argument("--step_save_summaries", default=10, type=int)

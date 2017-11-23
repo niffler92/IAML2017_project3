@@ -10,7 +10,7 @@ from PIL import Image
 # track_features : [32, 20, 1723, 1]
 # label_onehot : [32, 3, 200]
 
-preproc_dic = {'gamma_mel':0.5, 'norm_type':2, 'target_height':8}
+preproc_dic = {'gamma_mel':0.5, 'norm_type':2, 'target_height':8, 'max_noise':1.0}
 dataloader = DataLoader(preprocess_args=preproc_dic)
 features, labels, titles = dataloader.next_batch()
 
