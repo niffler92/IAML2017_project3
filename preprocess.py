@@ -185,7 +185,7 @@ class Preprocessor:
         features_mfcc = np.concatenate([features_mfcc1, features_mfcc2], axis=1)
 
         features_mel1 = _height_resize(features_mel[:, 0:8, :], 16)
-        features_mel2 = _height_resize(features_mel[:, 16:24, :], 16)
+        features_mel2 = _height_resize(features_mel[:, 8:24, :], 16)
         features_mel3 = _height_resize(features_mel[:, 24:88, :], 32)
         features_mel4 = _height_resize(features_mel[:, 88:128, :], 8)
         features_mel = np.concatenate([features_mel1, features_mel2, features_mel3, features_mel4], axis=1)
