@@ -29,6 +29,7 @@ def train_batch():
       param_dict['val_set_number'] = val_set_num
       train_dataloader.reset_args(param_dict)
       valid_dataloader.reset_args(param_dict)
+      print(param_dict)
 
       train_loss, train_acc, valid_loss, valid_acc, epoch = train(model, train_dataloader, valid_dataloader, param_dict)
       train_loss_list.append(train_loss)
