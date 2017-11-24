@@ -18,12 +18,13 @@ import argparse
 
 class DataLoader():
     def __init__(self,
-                 drum_list_path="dataset/audio_list.csv",
-                 label_path="dataset/labels.pkl",
-                 batch_size=None,
-                 val_set_number=None,
-                 is_training=True,
-                 args=None):
+                 drum_list_path=os.path.join(PROJECT_ROOT, "dataset/audio_list.csv"),
+                 label_path=os.path.join(PROJECT_ROOT, "dataset/labels.pkl"),
+                 feature_names=['mfcc', 'melspectrogram', 'rmse'],
+                 batch_size=32,
+                 preprocess_args=None,
+                 val_set_number=0,
+                 is_training=True):
 
         '''
         :param drum_list_path: 'dataset/audio_list.csv'
@@ -39,8 +40,8 @@ class DataLoader():
         self.is_training = is_training
         self.dataset_org = None
 
-        if args is not None:
-            self.reset_args(args)
+        if preprocess_args is not None:
+            self.reset_args(preprocess_args)
 
     def reset_args(self, args):
         # arguments setting
@@ -56,7 +57,7 @@ class DataLoader():
                 self.batch_size = self.args.batch_size
             if self.val_set_number is None:
                 self.val_set_number = self.args.val_set_number
-            self.feature_names = self.args.features
+            self.feature_names = self.args.features_names
         else:
             raise ValueError('unknown args')
 
@@ -70,6 +71,8 @@ class DataLoader():
 
         preprocessor = Preprocessor(self.dataset, args, self.is_training, self.feature_names)
         self.dataset = preprocessor.run()
+        for i, key in enumerate(['height', 'width', 'depth']):
+            self.args[key] = self.dataset[0].shape[i]
         self.batch_gen = self.batch_generator()
 
 
@@ -96,8 +99,6 @@ class DataLoader():
 
         :return:
         '''
-        data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
-        all_tids = self.metadata_df.FileName.tolist()
         if self.is_training:
             self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.val_set_number]
         else:

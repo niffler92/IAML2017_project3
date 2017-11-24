@@ -27,6 +27,7 @@ def train_batch():
 
     for val_set_num in range(3):
       param_dict['val_set_number'] = val_set_num
+      print(param_dict['feature_names'])
       train_dataloader.reset_args(param_dict)
       valid_dataloader.reset_args(param_dict)
 

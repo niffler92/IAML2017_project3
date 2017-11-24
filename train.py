@@ -190,12 +190,16 @@ def valid_full(step, summary_writer, model, valid_dataloader, session, args):
 
 def _create_train_summaries(model):
     with tf.name_scope("summaries/train"):
+        precision = tf.metrics.precision(tf.reshape(model.y_true, [-1]), tf.reshape(model.y_pred, [-1])[0])
+        recall = tf.metrics.recall(tf.reshape(model.y_true, [-1]), tf.reshape(model.y_pred, [-1])[0])
+        f1_score = 2 * precision * recall / (precision + recall)
         summaries = tf.summary.merge([
             tf.summary.scalar("loss", model.loss),
             tf.summary.histogram("histogram_loss", model.loss),
             tf.summary.scalar("accuracy", model.accuracy_op),
-            tf.summary.scalar("F1_score", tf.constant(
-                f1_score(tf.reshape(model.y_trues, [-1]), tf.reshape(model.y_preds, [-1]))))
+            tf.summary.scalar("precision", precision),
+            tf.summary.scalar("recall", recall),
+            tf.summary.scalar("f1_score", f1_score)
         ])
 
     return summaries

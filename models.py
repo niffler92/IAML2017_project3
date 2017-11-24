@@ -2,10 +2,13 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 import utils
+from tf_utils import get_activation
+from submodule import modules
+
 
 class BaseModel:
-    def __init__(self,args):
-        self.log = utils.get_loger("Models", None)
+    def __init__(self, args):
+        self.log = utils.get_logger("Models", None)
         self.args = args
         self.global_step = tf.Variable(0, dtype=tf.int32)
 
@@ -27,18 +30,18 @@ class BaseModel:
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
 
-                if self.args.optimizer == "adam":
-                    optimizer = tf.train.AdamOptimizer(learning_rate=self.args.learning_rate)
-                elif self.args.optimizer == "nesterov":
-                    optimizer = tf.train.MomentumOptimizer(learning_rate=self.args.learning_rate,
+                if self.args['optimizer'] == "adam":
+                    optimizer = tf.train.AdamOptimizer(learning_rate=self.args['learning_rate'])
+                elif self.args['optimizer'] == "nesterov":
+                    optimizer = tf.train.MomentumOptimizer(learning_rate=self.args['learning_rate'],
                                                            use_nesterov=True,
-                                                           momentum=self.args.momentum)
-                elif self.args.optimizer == "rmsprop":
-                    optimizer = tf.train.RMSPropOptimizer(self.args.learning_rate,
+                                                           momentum=self.args['momentum'])
+                elif self.args['optimizer'] == "rmsprop":
+                    optimizer = tf.train.RMSPropOptimizer(self.args['learning_rate'],
                                                           decay=0.9,
                                                           momentum=0.)
-                elif self.args.optimizer == "adadelta":
-                    optimizer = tf.train.AdadeltaOptimizer(self.args.learning_rate)
+                elif self.args['optimizer'] == "adadelta":
+                    optimizer = tf.train.AdadeltaOptimizer(self.args['learning_rate'])
                 else:
                     raise ValueError("Must define more optimizers")
 
@@ -59,67 +62,31 @@ class BaseModel:
         self._create_optimizer()
 
 
-class ConvPool(BaseModel):  # FIXME Example
+class CNN(BaseModel):  # FIXME Example
     def __init__(self, args):
-        # super().__init__(args)
-        super(BaseModel, self).__init__(args) # for python 2.7 compatibility (need to be confirmed)
+        super(CNN, self).__init__(args)  # for python 2.7 compatibility (need to be confirmed)
 
     def _create_placeholders(self):
-        self.x = tf.placeholder(dtype=tf.float32, shape=[None, self.args.height, self.args.width, 1], name="x")
-        self.y = tf.placeholder(dtype=tf.float32, shape=[None, self.args.num_classes], name="y")
+        self.x = tf.placeholder(dtype=tf.float32, shape=[None, self.args['height'], self.args['width'], self.args['depth']], name="x")
+        self.y = tf.placeholder(dtype=tf.float32, shape=[None, 3, 200], name="y")
 
-    def _create_network(self, is_training, regularization_scale=None):
+    def _create_network(self, is_training):
         """is_training must be tensorflow bool type when executing train and eval at the same time.
         """
-        if regularization_scale:
-            regularizer = tf.contrib.layers.l2_regularizer(scale=regularization_scale)
-        else:
-            regularizer = None
+        layer1 = modules.layer_block(self.x, self.args['h4'], self.args['h4']*self.args['h5'], self.args['activation'], 1)
+        layer2 = modules.layer_block(layer1, self.args['h7'], self.args['h7']*self.args['h8'], self.args['activation'], 2)
+        layer3 = modules.layer_block(layer2, self.args['h9'], self.args['h9']*self.args['h10'], self.args['activation'], 3)
 
-        with tf.variable_scope('conv1'):
-            conv1_h = self.x.shape.as_list()[1]
-            conv1 = tf.layers.conv2d(self.x, filters=256,
-                                     kernel_size=[conv1_h, 4],
-                                     strides=[1, 1],
-                                     kernel_regularizer=regularizer,
-                                     padding="valid")
-            conv1 = tf.layers.batch_normalization(conv1,
-                                                  training=is_training,
-                                                  trainable=True)
-            conv1 = tf.nn.relu(conv1)
-            conv1 = tf.transpose(conv1, [0, 3, 2, 1])
-            conv1 = tf.layers.max_pooling2d(conv1,
-                                            pool_size=[1, 4],
-                                            strides=[1, 4],
-                                            padding="valid")
+        layer_reshaped = tf.squeeze(layer3, axis=1)
+        assert layer_reshaped.shape.ndims == 3
 
-        with tf.variable_scope("temp_pool"):
-            w_conv3 = conv3.shape.as_list()[2]
-            conv3_avg = tf.nn.pool(conv3, pooling_type="AVG",
-                                   window_shape=[1, w_conv3],
-                                   strides=[1, 1],
-                                   padding="VALID",
-                                   name="avg_pool")
-            conv3_max = tf.layers.max_pooling2d(conv3,
-                                                pool_size=[1, w_conv3],
-                                                strides=[1, 1],
-                                                padding="VALID")
-            conv3_l2 = tf.norm(conv3, axis=2, keep_dims=True)
-            concat = tf.concat([conv3_avg, conv3_max, conv3_l2], 3)
-
-        with tf.variable_scope("fc1"):
-            # Flatten the data to a 1-D vector for the fully connected layer
-            fc1 = tf.contrib.layers.flatten(concat)
-            fc1 = tf.layers.dense(fc1, 1024, # 2048
-                                  kernel_regularizer=regularizer)
-            fc1 = tf.nn.relu(fc1)
-            fc1 = tf.layers.batch_normalization(fc1, training=is_training, trainable=True)
-            fc1 = tf.layers.dropout(fc1, rate=self.args.dropout, training=is_training)
+        layer4 = slim.conv2d(layer_reshaped, 3, 1, activation_fn=get_activation(self.args['activation']), scope="layer_4")
+        layer4 = tf.transpose(layer4, [0, 2, 1])  # (B, 3, 200)
 
         with tf.variable_scope("output"):
-            self.logits = tf.layers.dense(fc2, self.args.num_classes, name="logits")
-            self.y_pred = tf.argmax(self.logits, 1, name="y_pred")
-            self.y_true = tf.argmax(self.y, 1, name="y_true")
+            self.logits = layer4
+            self.y_pred = tf.round(self.logits)
+            self.y_true = self.y
             correct_pred = tf.equal(self.y_pred, self.y_true)
             self.accuracy_op = tf.reduce_mean(tf.cast(correct_pred, "float"), name="accuracy")
 
