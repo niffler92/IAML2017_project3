@@ -42,7 +42,7 @@ class DataLoader():
         self.preprocess_args = preprocess_args
 
         self.dataset = None
-        self.create_dataset_org()
+        self.create_dataset()
         assert self.dataset is not None
 
         self.dataset_org = copy.deepcopy(self.dataset)
@@ -60,12 +60,12 @@ class DataLoader():
         self.metadata_df = self.metadata_df_org.copy(deep=True)
         self.create_batches()  # Get Train/Validation from original
 
-        preprocessor = Preprocessor(self.dataset, preprocess_args, is_training, feature_names)
+        preprocessor = Preprocessor(self.dataset, args, self.is_training, self.feature_names)
         self.dataset = preprocessor.run()
         self.batch_gen = self.batch_generator()
 
 
-    def create_dataset_org(self):
+    def create_dataset(self):
         data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
         all_tids = self.metadata_df.FileName.tolist()
 
@@ -76,9 +76,9 @@ class DataLoader():
             data_file_path = os.path.join(data_dir, '{}.pkl'.format(feature_name))
             print("Loading is done. Took {} seconds.".format(time.time() - st))
             if idx == 0:
-                self.dataset_org = np.load(data_file_path)
+                self.dataset = np.load(data_file_path)
             else:  # Stack
-                self.dataset_org = np.concatenate(
+                self.dataset = np.concatenate(
                     (self.dataset, np.load(data_file_path)),
                     axis=1)
 

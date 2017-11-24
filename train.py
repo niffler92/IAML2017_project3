@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # Train
     parser.add_argument("--train_dir", default="train_dir", type=str)
     parser.add_argument("--step_save_summaries", default=10, type=int)
-    praser.add_argument("--no_save_ckpt", default=False, type=int)
+    parser.add_argument("--no_save_ckpt", default=False, type=bool)
     parser.add_argument("--max_epochs", default=500, type=int)
 
     # Train Parameters
@@ -73,7 +73,7 @@ def train(model, train_dataloader, valid_dataloader, session, args):
         args (dict)
     """
     saver = _set_saver(session, args)
-    summary_op = _create_summaries(model)
+    summary_op = _create_train_summaries(model)
     summary_writer = tf.summary.FileWriter(args['train_dir'], session.graph)
 
     log.info("Training start")
@@ -143,7 +143,7 @@ def valid_full(step, summary_writer, model, valid_dataloader, session, args):
     y_trues = []
 
     for _ in range(total_batch):
-        batch_x, batch_y, track_ids = train_dataloader.next_batch()
+        batch_x, batch_y, track_ids = valid_dataloader.next_batch()
         loss_, acc_, step, y_pred, y_true = session.run(
             [model.loss, model.accuracy_op, model.global_step,
              model.y_pred, model.y_true], feed_dict={model.x: batch_x, model.y: batch_y})
@@ -179,9 +179,9 @@ def valid_full(step, summary_writer, model, valid_dataloader, session, args):
 def _create_train_summaries(model):
     with tf.name_scope("summaries/train"):
         summaries = tf.summary.merge([
-            tf.summary.scalar("loss", model.loss)
-            tf.summary.histogram("histogram_loss", model.loss)
-            tf.summary.scalar("accuracy", model.accuracy_op)
+            tf.summary.scalar("loss", model.loss),
+            tf.summary.histogram("histogram_loss", model.loss),
+            tf.summary.scalar("accuracy", model.accuracy_op),
             tf.summary.scalar("F1_score", tf.constant(
                 f1_score(tf.reshape(model.y_trues, [-1]), tf.reshape(model.y_preds, [-1]))))
         ])
@@ -192,9 +192,9 @@ def _create_train_summaries(model):
 def _create_valid_summaries(loss, acc, y_preds, y_trues):
     with tf.name_scope("summaries/valid"):
         summaries = tf.summary.merge([
-            tf.summary.scalar("loss", tf.constant(loss))
-            tf.summary.histogram("histogram_loss", tf.constant(loss))
-            tf.summary.scalar("accuracy", tf.constant(acc))
+            tf.summary.scalar("loss", tf.constant(loss)),
+            tf.summary.histogram("histogram_loss", tf.constant(loss)),
+            tf.summary.scalar("accuracy", tf.constant(acc)),
             tf.summary.scalar("F1_score", tf.constant(f1_score(y_trues, y_preds)))
         ])
 
