@@ -141,11 +141,13 @@ class CNN(BaseModel):  # FIXME Example
         layer4 = tf.squeeze(layer4, axis=1)
         assert layer4.shape.ndims == 3
         layer4 = tf.transpose(layer4, [0, 2, 1])  # (B, 3, 200)
-        layer4 = tf.nn.sigmoid(layer4)
+        # layer4 = tf.nn.sigmoid(layer4)
 
         with tf.variable_scope("output"):
             self.logits = layer4
-            self.y_pred = tf.round(self.logits)  # tf.cast(tf.greater(self.logits, 0), dtype=tf.float32)
+            # self.y_pred = tf.round(self.logits)
+            self.y_pred = tf.cast(tf.greater(self.logits, 0), dtype=tf.float32)
+
             self.y_true = self.y
             correct_pred = tf.equal(self.y_pred, self.y_true)
             accuracy = tf.reduce_mean(tf.cast(correct_pred, "float"), name="accuracy")
