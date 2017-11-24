@@ -77,13 +77,13 @@ class CNN(BaseModel):  # FIXME Example
         layer2 = modules.layer_block(layer1, self.args['h7'], self.args['h7']*self.args['h8'], self.args['activation'], 2)
         layer3 = modules.layer_block(layer2, self.args['h9'], self.args['h9']*self.args['h10'], self.args['activation'], 3)
 
-        layer4 = slim.conv2d(layer3, 3, 1, activation_fn=get_activation(self.args['activation']), scope="layer_4")
+        layer4 = slim.conv2d(layer3, 3, 1, scope="layer_4")  #, activation_fn=get_activation(self.args['activation']))
         layer4 = tf.squeeze(layer4, axis=1)
         assert layer4.shape.ndims == 3
         layer4 = tf.transpose(layer4, [0, 2, 1])  # (B, 3, 200)
 
         with tf.variable_scope("output"):
-            self.logits = tf.sigmoid(layer4)
+            self.logits = layer4
             self.y_pred = tf.round(self.logits)
             self.y_true = self.y
             correct_pred = tf.equal(self.y_pred, self.y_true)
@@ -91,4 +91,4 @@ class CNN(BaseModel):  # FIXME Example
 
     def _create_loss(self):
         with tf.variable_scope("loss"):
-            self.loss = tf.losses.softmax_cross_entropy(self.y, logits=self.logits)
+            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.reshape(self.y, [-1]), logits=tf.reshape(self.logits, [-1])))
