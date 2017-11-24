@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 from collections import Counter
+import argparse
 # from pathlib import Path
 import os
 import settings
@@ -144,3 +145,11 @@ def calculate_average_F1_score(pred_lists, label_lists):
     avg_f1_score /= 3
     return avg_f1_score
 
+
+def get_arg(args, attr):
+    if isinstance(args, dict):
+        return args[attr]
+    elif isinstance(args, argparse.Namespace):
+        return getattr(args, attr)
+    else:
+        raise ValueError("Unknown args")

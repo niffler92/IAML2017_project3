@@ -14,7 +14,6 @@ from augmentation import Augmentation
 import matplotlib.pyplot as plt
 from params import param_default as param
 import utils
-import argparse
 
 class DataLoader():
     def __init__(self,
@@ -47,22 +46,13 @@ class DataLoader():
     def reset_args(self, args):
         # arguments setting
         self.args = args
-        if isinstance(args, dict):
-            if self.batch_size is None:
-                self.batch_size = self.args['batch_size']
-            if self.val_set_number is None:
-                self.val_set_number = self.args['val_set_number']
-            if self.feature_names is None:
-                self.feature_names = self.args['feature_names']
-        elif isinstance(args, argparse.Namespace):
-            if self.batch_size is None:
-                self.batch_size = self.args.batch_size
-            if self.val_set_number is None:
-                self.val_set_number = self.args.val_set_number
-            if self.feature_names is None:
-                self.feature_names = self.args.features
-        else:
-            raise ValueError('unknown args')
+
+        if self.batch_size is None:
+            self.batch_size = utils.get_arg(self.args, 'batch_size')
+        if self.val_set_number is None:
+            self.val_set_number = utils.get_arg(self.args, 'val_set_number')
+        if self.feature_names is None:
+            self.feature_names = utils.get_arg(self.args, 'feature_names')
 
         if self.dataset_org is None:
             self.create_dataset_org()
