@@ -84,7 +84,7 @@ class CNN(BaseModel):  # FIXME Example
         layer4 = tf.transpose(layer4, [0, 2, 1])  # (B, 3, 200)
 
         with tf.variable_scope("output"):
-            self.logits = layer4
+            self.logits = tf.sigmoid(layer4)
             self.y_pred = tf.round(self.logits)
             self.y_true = self.y
             correct_pred = tf.equal(self.y_pred, self.y_true)
