@@ -49,5 +49,8 @@ def param_list_dict():
   param_list_dict['step_save_summaries'] = [100000000]  # no save
   param_list_dict['max_epochs'] = [500]
   param_list_dict['no_save_ckpt'] = [True]
+  param_list_dict['train_batch_result_filename'] = ['./log/batch_log/result.txt']
+
+
 
   return param_list_dict

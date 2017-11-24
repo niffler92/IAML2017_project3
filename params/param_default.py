@@ -9,7 +9,7 @@ def param_list_dict():
   param_list_dict = dict()
 
   # model
-  param_list_dict['model'] = ['model']
+  param_list_dict['model'] = ['CNN']
   param_list_dict['feature_names'] = [["mfcc", "melspectrogram", "rmse"]]
 
   # preprocessing
@@ -25,6 +25,16 @@ def param_list_dict():
 
   # hyperparameters
   param_list_dict['batch_size'] = [32]                 # [8, 16, 32, 64]
+  param_list_dict['h4'] = [32]
+  param_list_dict['h5'] = [1]
+  param_list_dict['h7'] = [64]
+  param_list_dict['h8'] = [1]
+  param_list_dict['h9'] = [128]
+  param_list_dict['h10'] = [1]
+  param_list_dict['height'] = [8]
+  param_list_dict['width'] = [1600]
+  param_list_dict['depth'] = [13]
+  param_list_dict['activation'] = ['relu']
 
   # train
   param_list_dict['learning_rate'] = [1e-3]
@@ -37,8 +47,8 @@ def param_list_dict():
   param_list_dict['checkpoint_path'] = ['']
   param_list_dict['train_dir'] = ['train_dir/default']
   param_list_dict['step_save_summaries'] = [100000000]  # no save
-  param_list_dict['max_epochs'] = [500]
-  param_list_dict['no_save_ckpt'] = [True]
+  param_list_dict['max_epochs'] = [50]
+  param_list_dict['no_save_ckpt'] = [False]
 
   return param_list_dict
 

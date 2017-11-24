@@ -7,4 +7,4 @@ def get_activation(name):
     elif name == "relu6":
         return tf.nn.relu6
     elif name == "swish":
-        pass
+        return lambda x: tf.multiply(x, tf.nn.sigmoid(x))

@@ -6,6 +6,7 @@ import utils
 from train import *
 
 
+
 def train_batch():
   param_list_dict = param.param_list_dict()
   param_dict = utils.get_random_param(param_list_dict)

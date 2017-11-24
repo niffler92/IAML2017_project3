@@ -64,7 +64,7 @@ class BaseModel:
 
 class CNN(BaseModel):  # FIXME Example
     def __init__(self, args):
-        super(CNN, self).__init__(args)  # for python 2.7 compatibility (need to be confirmed)
+        BaseModel.__init__(self, args)  # for python 2.7 compatibility (need to be confirmed)
 
     def _create_placeholders(self):
         self.x = tf.placeholder(dtype=tf.float32, shape=[None, self.args['height'], self.args['width'], self.args['depth']], name="x")
@@ -84,11 +84,11 @@ class CNN(BaseModel):  # FIXME Example
 
         with tf.variable_scope("output"):
             self.logits = layer4
-            self.y_pred = tf.round(self.logits)
+            self.y_pred = tf.cast(tf.greater(self.logits, 0), dtype=tf.float32)
             self.y_true = self.y
             correct_pred = tf.equal(self.y_pred, self.y_true)
             self.accuracy_op = tf.reduce_mean(tf.cast(correct_pred, "float"), name="accuracy")
 
     def _create_loss(self):
         with tf.variable_scope("loss"):
-            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.reshape(self.y, [-1]), logits=tf.reshape(self.logits, [-1])))
+            self.loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.y, logits=self.logits)

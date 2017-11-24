@@ -110,17 +110,18 @@ def train(model, train_dataloader, valid_dataloader, args):
 
         valid_acc, valid_loss = valid_full(step, total_batch, summary_writer, model, valid_dataloader, session, args)
 
-        if not args['no_save_ckpt']:
-            if valid_acc > valid_acc_best:
+
+        if valid_acc > valid_acc_best:
+            if not args['no_save_ckpt']:
                 saver.save(session,
                            os.path.join(args['train_dir'], args['model']) + "-bs{}".format(args['batch_size']))
                            # global_step=model.global_step)  # no step
 
-                train_loss_best = train_loss
-                train_acc_best = train_acc
-                valid_loss_best = valid_loss
-                valid_acc_best = valid_acc
-                epoch_best = epoch
+            train_loss_best = train_loss
+            train_acc_best = train_acc
+            valid_loss_best = valid_loss
+            valid_acc_best = valid_acc
+            epoch_best = epoch
 
 
         elapsed_time = time.time() - st
