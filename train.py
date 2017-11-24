@@ -50,28 +50,28 @@ if __name__ == '__main__':
 
 def main(args):
     with tf.device("/gpu:0"):  # Is there any better way?
-        train_dataloader = DataLoader(feature_names=args.features,
-                                      batch_size=args.batch_size,
-                                      preprocess_args=args,
-                                      val_set_number=args.val_set_number,
-                                      is_training=True)
+        train_dataloader = DataLoader(batch_size=args.batch_size, args=args, is_training=True)
 
     model = utils.find_class_by_name([models], args.model)(args)
     model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
+
+    train(model, train_dataloader, args)
+
+
+
+
+def train(model, train_dataloader, valid_dataloader, args):
+    """
+    Args:
+        args (dict)
+    """
 
     session = tf.Session(config=tf.ConfigProto(
         gpu_options=tf.GPUOptions(allow_growth=True),
         log_device_placement=False,
         allow_soft_placement=True)
     )
-    train(model, train_dataloader, session, args)
 
-
-def train(model, train_dataloader, valid_dataloader, session, args):
-    """
-    Args:
-        args (dict)
-    """
     saver = _set_saver(session, args)
     summary_op = _create_train_summaries(model)
     summary_writer = tf.summary.FileWriter(args['train_dir'], session.graph)
@@ -81,10 +81,15 @@ def train(model, train_dataloader, valid_dataloader, session, args):
     log.info("Number of total parameters : {}".format(total_params))
     total_batch = train_dataloader.num_batch
 
-    valid_acc = 0
+    train_loss_best = 1e10
+    train_acc_best = -1e10
+    valid_loss_best = 1e10
+    valid_acc_best = -1e10
+    epoch_best = 0
+
     for epoch in range(args['max_epochs']):
-        avg_loss = 0
-        avg_acc = 0
+        train_loss = 0
+        train_acc = 0
         st = time.time()
         y_preds = []
         y_trues = []
@@ -95,22 +100,27 @@ def train(model, train_dataloader, valid_dataloader, session, args):
                 [model.train_op, model.loss, model.accuracy_op, model.global_step, summary_op,
                  model.y_pred, model.y_true], feed_dict={model.x: batch_x, model.y: batch_y})
 
-            avg_loss += loss_ / total_batch
-            avg_acc += acc_ / total_batch
+            train_loss += loss_ / total_batch
+            train_acc += acc_ / total_batch
             y_preds += y_pred.ravel().tolist()  # (1, 600)
             y_trues += y_true.ravel().tolist()
 
             if step % args['step_save_summaries'] == 0:
                 summary_writer.add_summary(summary, global_step=step)
 
-        new_valid_acc = valid_full(step, summary_writer, model, valid_dataloader, session, args)
+        valid_acc, valid_loss = valid_full(step, summary_writer, model, valid_dataloader, session, args)
 
         if not args['no_save_ckpt']:
-            if new_valid_acc > valid_acc:
+            if valid_acc > valid_acc_best:
                 saver.save(session,
                            os.path.join(args['train_dir'], args['model']) + "-bs{}".format(args['batch_size']))
                            # global_step=model.global_step)  # no step
-                valid_acc = new_valid_acc
+
+                train_loss_best = train_loss
+                train_acc_best = train_acc
+                valid_loss_best = valid_loss
+                valid_acc_best = valid_acc
+                epoch_best = epoch
 
 
         elapsed_time = time.time() - st
@@ -118,7 +128,7 @@ def train(model, train_dataloader, valid_dataloader, session, args):
         print("#######################TRAIN#########################")
         log.info("Step: {:5d} | Epoch: {:3d} | Elapsed time: {:3.2f} | "
                  "Epoch loss: {:.5f} | Epoch accuracy: {:.5f}".format(
-                    int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
+                    int(step), real_epoch, elapsed_time, train_loss, train_acc))
 
         # TODO: Report F1, precision, recall by Instrument and Overall
         #for line in classification_report(y_trues, y_preds).split("\n"):
@@ -128,6 +138,8 @@ def train(model, train_dataloader, valid_dataloader, session, args):
     log.info("Training Finished!")
     session.close()
     summary_writer.close()
+
+    return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, epoch_best
 
 
 def valid_full(step, summary_writer, model, valid_dataloader, session, args):
@@ -173,7 +185,7 @@ def valid_full(step, summary_writer, model, valid_dataloader, session, args):
     #    print(line)
     #print(confusion_matrix(y_trues, y_preds))
 
-    return avg_acc
+    return avg_acc, avg_loss
 
 
 def _create_train_summaries(model):

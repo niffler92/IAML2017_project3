@@ -24,7 +24,7 @@ class Preprocessor:
             self.norm_type = args.norm_type
             self.target_height = args.target_height
         else:
-            raise ValueError('unknown preprocess_args')
+            raise ValueError('unknown args')
 
         self.feature_names = feature_names
         self.dic_feature_len = {'mfcc': 20, 'melspectrogram': 128, 'rmse': 1}

@@ -11,7 +11,7 @@ from PIL import Image
 # label_onehot : [32, 3, 200]
 
 preproc_dic = {'gamma_mel':0.5, 'norm_type':2, 'target_height':8, 'max_noise':1.0}
-dataloader = DataLoader(preprocess_args=preproc_dic)
+dataloader = DataLoader(preproc_dic)
 features, labels, titles = dataloader.next_batch()
 
 data = np.concatenate([features[0,:,:,0], features[0,:,:,1], features[0,:,:,2], features[0,:,:,3],

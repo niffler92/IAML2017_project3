@@ -12,50 +12,58 @@ from settings import PROJECT_ROOT
 from preprocess import Preprocessor
 from augmentation import Augmentation
 import matplotlib.pyplot as plt
+from params import param_default as param
+import utils
+import argparse
 
 class DataLoader():
     def __init__(self,
                  drum_list_path="dataset/audio_list.csv",
                  label_path="dataset/labels.pkl",
-                 feature_names=['mfcc', 'melspectrogram', 'rmse'],
-                 batch_size=32,
-                 preprocess_args=None,
-                 val_set_number=0,
-                 is_training=True):
+                 batch_size=None,
+                 val_set_number=None,
+                 is_training=True,
+                 args=None):
 
         '''
         :param drum_list_path: 'dataset/audio_list.csv'
         :param label_path: 'dataset/labels.pkl'
-        :param feature_names: list of features to use
-        :param batch_size:
-        :param preprocess_args: (dict)
-        :param val_set_number: validation number for Cross-validation
         :param is_training: training / validation mode
         '''
-        self.drum_list_path = drum_list_path
-        self.metadata_df = pd.read_csv(self.drum_list_path)
         self.batch_size = batch_size
-        self.feature_names = feature_names
+        self.val_set_number = val_set_number
+        self.drum_list_path = drum_list_path
+        self.metadata_df_org = pd.read_csv(self.drum_list_path)
+
         self.labels = pickle.load(open(label_path, 'rb'))
-        #self.val_set_number = val_set_number
         self.is_training = is_training
-        self.preprocess_args = preprocess_args
+        self.dataset_org = None
 
-        self.dataset = None
-        self.create_dataset()
-        assert self.dataset is not None
-
-        self.dataset_org = copy.deepcopy(self.dataset)
-        self.metadata_df_org = self.metadata_df.copy(deep=True)
-
-        #self.create_batches()
-        #preprocessor = Preprocessor(self.dataset, preprocess_args, is_training, feature_names)
-        #self.dataset = preprocessor.run()
-        #self.batch_gen = self.batch_generator()
-
+        if args is not None:
+            self.reset_args(args)
 
     def reset_args(self, args):
-        self.preprocess_args = args
+        # arguments setting
+        self.args = args
+        if isinstance(args, dict):
+            if self.batch_size is None:
+                self.batch_size = self.args['batch_size']
+            if self.val_set_number is None:
+                self.val_set_number = self.args['val_set_number']
+            self.feature_names = self.args['feature_names']
+        elif isinstance(args, argparse.Namespace):
+            if self.batch_size is None:
+                self.batch_size = self.args.batch_size
+            if self.val_set_number is None:
+                self.val_set_number = self.args.val_set_number
+            self.feature_names = self.args.features
+        else:
+            raise ValueError('unknown args')
+
+        if self.dataset_org is None:
+            self.create_dataset_org()
+            assert self.dataset_org is not None
+
         self.dataset = copy.deepcopy(self.dataset_org)
         self.metadata_df = self.metadata_df_org.copy(deep=True)
         self.create_batches()  # Get Train/Validation from original
@@ -65,9 +73,9 @@ class DataLoader():
         self.batch_gen = self.batch_generator()
 
 
-    def create_dataset(self):
+    def create_dataset_org(self):
         data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
-        all_tids = self.metadata_df.FileName.tolist()
+        all_tids = self.metadata_df_org.FileName.tolist()
 
         for idx, feature_name in enumerate(self.feature_names):
             features.maybe_create_data_file(feature_name, all_tids)
@@ -76,10 +84,10 @@ class DataLoader():
             data_file_path = os.path.join(data_dir, '{}.pkl'.format(feature_name))
             print("Loading is done. Took {} seconds.".format(time.time() - st))
             if idx == 0:
-                self.dataset = np.load(data_file_path)
+                self.dataset_org = np.load(data_file_path)
             else:  # Stack
-                self.dataset = np.concatenate(
-                    (self.dataset, np.load(data_file_path)),
+                self.dataset_org = np.concatenate(
+                    (self.dataset_org, np.load(data_file_path)),
                     axis=1)
 
 
@@ -90,15 +98,14 @@ class DataLoader():
         '''
         data_dir = os.path.join(PROJECT_ROOT, 'dataset/')
         all_tids = self.metadata_df.FileName.tolist()
-
         if self.is_training:
-            self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.preprocess_args['val_set_number']]
+            self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.val_set_number]
         else:
-            self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.preprocess_args['val_set_number']]
+            self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.val_set_number]
 
-        self.dataset = self.dataset[self.metadata_df.index]
+        self.dataset = copy.deepcopy(self.dataset_org[self.metadata_df.index])
         self.metadata_df.reset_index(drop=True, inplace=True)
-        self.num_batch = int(len(self.metadata_df) / self.batch_size)
+        self.num_batch = int((len(self.metadata_df) + self.batch_size - 1) / self.batch_size)
         self.pointer = 0
 
 
@@ -127,7 +134,7 @@ class DataLoader():
         :return: feature array, label array (one-hot encoded)
         '''
         features, label_onehot, titles = next(self.batch_gen)
-        augmentation = Augmentation(features, self.preprocess_args, self.is_training)
+        augmentation = Augmentation(features, self.args, self.is_training)
         features = augmentation.run()
 
         return features, label_onehot, titles
@@ -152,8 +159,11 @@ class DataLoader():
 if __name__ == "__main__":
     # for test
 
-    training_loader = DataLoader(batch_size=32, is_training=True)
-    valid_loader = DataLoader(batch_size=1, is_training=False)
+    param_list_dict = param.param_list_dict()
+    param_dict = utils.get_random_param(param_list_dict)
+
+    training_loader = DataLoader(val_set_number=0, args=param_dict, batch_size=8, is_training=True)
+    valid_loader = DataLoader(val_set_number=0, args=param_dict, batch_size=8, is_training=False)
 
     for _ in range(training_loader.num_batch):
         features, label_onehot, titles = training_loader.next_batch()
@@ -171,7 +181,8 @@ if __name__ == "__main__":
 
 
     for _ in range(valid_loader.num_batch):
-        track_features, label_onehot, titles = valid_loader.next_batch()
+        features, label_onehot, titles = valid_loader.next_batch()
+        print(len(features), len(label_onehot))
 
 
 

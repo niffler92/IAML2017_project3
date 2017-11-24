@@ -78,7 +78,7 @@ def get_random_param(param_list_dict):
     return param_dict
 
 
-def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc):
+def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch):
     filename = param_dict['train_batch_result_filename']
 
     if not os.path.exists(filename):
@@ -88,7 +88,8 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc):
         file.write('train_cost\t')
         file.write('train_acc\t')
         file.write('valid_cost\t')
-        file.write('valid_acc\n')
+        file.write('valid_acc\t')
+        file.write('epoch\n')
     else:
         file = open(filename, 'a')
 
@@ -106,5 +107,6 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc):
     file.write('%f\t' % (train_cost))
     file.write('%f\t' % (train_acc))
     file.write('%f\t' % (valid_cost))
-    file.write('%f\n' % (valid_acc))
+    file.write('%f\t' % (valid_acc))
+    file.write('%d\n' % (epoch))
     file.close()

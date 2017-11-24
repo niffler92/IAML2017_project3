@@ -27,31 +27,7 @@ class Augmentation:
 
         data_std = np.std(X)
         noise_std = np.random.uniform() * data_std * max_noise
-
-        fig, axes = plt.subplots(13, 1, figsize=(15, 8))
-        fig.subplots_adjust(hspace=.001, wspace=.001)
-        axs = axes.ravel()
-        for i in range(13):
-          axs[i].set_xticks([])
-          axs[i].set_yticks([])
-          axs[i].imshow(X[0, :, :, i], aspect='auto')
-        axs[0].set_title('before')
-        plt.show()
-
-
         X += np.random.normal(scale = noise_std, size=np.shape(X))
-
-
-        fig, axes = plt.subplots(13, 1, figsize=(15, 8))
-        fig.subplots_adjust(hspace=.001, wspace=.001)
-        axs = axes.ravel()
-        for i in range(13):
-          axs[i].set_xticks([])
-          axs[i].set_yticks([])
-          axs[i].imshow(X[0, :, :, i], aspect='auto')
-        axs[0].set_title('after')
-        plt.show()
-
         return X
 
 
