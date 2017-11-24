@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from collections import Counter
 # from pathlib import Path
 import os
 import settings
@@ -110,3 +111,36 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
     file.write('%f\t' % (valid_acc))
     file.write('%d\n' % (epoch))
     file.close()
+
+
+def calculate_average_F1_score(pred_lists, label_lists):
+    # calculate average F1 score (hihat, kick, snare)
+    # shape of each list is 3*200
+
+    avg_f1_score = 0
+    for pred_list, label_list in zip(pred_lists, label_lists):
+        counts = Counter(zip(pred_list, label_list))
+        tp = counts[1,1]
+        fp = counts[1,0]
+        fn = counts[0,1]
+        try:
+            precision = tp / (tp+fp)
+        except ZeroDivisionError:
+            precision = 0
+
+        try:
+            recall = tp / (fn + tp)
+        except ZeroDivisionError:
+            recall = 0
+
+        try:
+            f1 = 2*(precision*recall / (precision+recall))
+        except ZeroDivisionError:
+            f1 = 0
+        avg_f1_score+=f1
+
+        print(precision, recall, f1)
+
+    avg_f1_score /= 3
+    return avg_f1_score
+

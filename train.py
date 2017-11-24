@@ -108,7 +108,7 @@ def train(model, train_dataloader, valid_dataloader, args):
             if step % args['step_save_summaries'] == 0:
                 summary_writer.add_summary(summary, global_step=step)
 
-        valid_acc, valid_loss = valid_full(step, summary_writer, model, valid_dataloader, session, args)
+        valid_acc, valid_loss = valid_full(step, total_batch, summary_writer, model, valid_dataloader, session, args)
 
         if not args['no_save_ckpt']:
             if valid_acc > valid_acc_best:
@@ -142,12 +142,11 @@ def train(model, train_dataloader, valid_dataloader, args):
     return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, epoch_best
 
 
-def valid_full(step, summary_writer, model, valid_dataloader, session, args):
+def valid_full(step, total_batch, summary_writer, model, valid_dataloader, session, args):
     """
     Args:
         args (dict)
     """
-    total_batch = valid_dataloader.num_batch
     avg_loss = 0
     avg_acc = 0
     st = time.time()
@@ -168,7 +167,7 @@ def valid_full(step, summary_writer, model, valid_dataloader, session, args):
         y_trues += y_true.ravel().tolist()
 
 
-    summary_op = _create_valid_summaries(avg_loss, avg_acc, y_preds, y_trues)
+    summary_op = _create_valid_summaries(avg_loss, avg_acc, y_pred, y_true)
     summary = session.run(summary_op)
 
     if step % args['step_save_summaries'] == 0:
@@ -212,7 +211,8 @@ def _create_valid_summaries(loss, acc, y_preds, y_trues):
             tf.summary.scalar("loss", tf.constant(loss)),
             tf.summary.histogram("histogram_loss", tf.constant(loss)),
             tf.summary.scalar("accuracy", tf.constant(acc)),
-            tf.summary.scalar("F1_score", tf.constant(f1_score(y_trues, y_preds)))
+            #tf.summary.scalar("F1_score", tf.constant(
+            #    utils.calculate_average_F1_score(np.asarray(y_trues, dtype=int), np.asarray(y_preds, dtype=int))))
         ])
 
     return summaries
