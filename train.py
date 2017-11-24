@@ -181,8 +181,8 @@ def valid_full(step, total_batch, summary_writer, model, valid_dataloader, sessi
              "Valid loss: {:.5f} | Valid accuracy: {:.5f}".format(
                 int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
 
-    #for line in classification_report(y_trues, y_preds).split("\n"):
-    #    print(line)
+    for line in classification_report(y_trues, y_preds).split("\n"):
+        print(line)
     #print(confusion_matrix(y_trues, y_preds))
 
     return avg_acc, avg_loss
