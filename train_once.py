@@ -19,11 +19,16 @@ def train_batch():
 
   param_dict = utils.get_random_param(param_list_dict)
 
+  param_dict['tag_label'] = 'CNN_try4'
+
+
   train_loss_list = []
   train_acc_list = []
   valid_loss_list = []
   valid_acc_list = []
   epoch_list = []
+
+  session = tf.Session()
 
   for val_set_num in range(3):
     param_dict['val_set_number'] = val_set_num
@@ -31,7 +36,7 @@ def train_batch():
     valid_dataloader.reset_args(param_dict)
     print(param_dict)
 
-    train_loss, train_acc, valid_loss, valid_acc, epoch = train(model, train_dataloader, valid_dataloader, param_dict)
+    train_loss, train_acc, valid_loss, valid_acc, epoch = train(model, session, train_dataloader, valid_dataloader, param_dict)
     train_loss_list.append(train_loss)
     train_acc_list.append(train_acc)
     valid_loss_list.append(valid_loss)
@@ -43,6 +48,8 @@ def train_batch():
   valid_loss = np.average(valid_loss_list)
   valid_acc = np.average(valid_acc_list)
   epoch = np.max(epoch_list)
+
+  session.close()
 
   print('train_loss(%.4f), train_acc(%.4f), valid_loss(%.4f), valid_acc(%.4f), epoch(%d)' % (train_loss, train_acc, valid_loss, valid_acc, epoch))
 

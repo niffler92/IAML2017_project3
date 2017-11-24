@@ -23,7 +23,8 @@ class DataLoader():
                  batch_size=None,
                  args=None,
                  val_set_number=0,
-                 is_training=True):
+                 is_training=True,
+                 total_validation=False):
 
         '''
         :param drum_list_path: 'dataset/audio_list.csv'
@@ -35,6 +36,7 @@ class DataLoader():
         self.val_set_number = val_set_number
         self.drum_list_path = drum_list_path
         self.metadata_df_org = pd.read_csv(self.drum_list_path)
+        self.total_validation = total_validation
 
         self.labels = pickle.load(open(label_path, 'rb'))
         self.is_training = is_training
@@ -92,7 +94,9 @@ class DataLoader():
 
         :return:
         '''
-        if self.is_training:
+        if self.total_validation:
+            pass
+        elif self.is_training:
             self.metadata_df = self.metadata_df[self.metadata_df['set'] != self.val_set_number]
         else:
             self.metadata_df = self.metadata_df[self.metadata_df['set'] == self.val_set_number]

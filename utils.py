@@ -125,12 +125,12 @@ def calculate_average_F1_score(pred_lists, label_lists):
         fp = counts[1,0]
         fn = counts[0,1]
         try:
-            precision = tp / (tp+fp)
+            precision = float(tp) / (tp+fp)
         except ZeroDivisionError:
             precision = 0
 
         try:
-            recall = tp / (fn + tp)
+            recall = float(tp) / (fn + tp)
         except ZeroDivisionError:
             recall = 0
 
@@ -140,7 +140,7 @@ def calculate_average_F1_score(pred_lists, label_lists):
             f1 = 0
         avg_f1_score+=f1
 
-        print(precision, recall, f1)
+        # print(precision, recall, f1)
 
     avg_f1_score /= 3
     return avg_f1_score

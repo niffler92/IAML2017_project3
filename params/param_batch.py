@@ -44,8 +44,10 @@ def param_list_dict():
   param_list_dict['dropout'] = range_float(0.2, 0.8, 6)
 
   # configs
+  param_list_dict['val_set_number'] = [0]
   param_list_dict['checkpoint_path'] = ['']
-  param_list_dict['train_dir'] = ['train_dir/default']
+  param_list_dict['train_dir'] = ['train_dir']
+  param_list_dict['tag_label'] = ['default']
   param_list_dict['step_save_summaries'] = [100000000]  # no save
   param_list_dict['max_epochs'] = [500]
   param_list_dict['no_save_ckpt'] = [True]

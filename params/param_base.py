@@ -9,7 +9,7 @@ def param_list_dict():
   param_list_dict = dict()
 
   # model
-  param_list_dict['model'] = ['CNN']
+  param_list_dict['model'] = ['CNN_BASE']
   param_list_dict['feature_names'] = [["mfcc", "melspectrogram", "rmse"]]
 
   # preprocessing
