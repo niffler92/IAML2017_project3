@@ -20,9 +20,9 @@ class DataLoader():
     def __init__(self,
                  drum_list_path=os.path.join(PROJECT_ROOT, "dataset/audio_list.csv"),
                  label_path=os.path.join(PROJECT_ROOT, "dataset/labels.pkl"),
-                 feature_names=['mfcc', 'melspectrogram', 'rmse'],
-                 batch_size=32,
-                 preprocess_args=None,
+                 feature_names=None,
+                 batch_size=None,
+                 args=None,
                  val_set_number=0,
                  is_training=True):
 
@@ -31,6 +31,7 @@ class DataLoader():
         :param label_path: 'dataset/labels.pkl'
         :param is_training: training / validation mode
         '''
+        self.feature_names = feature_names
         self.batch_size = batch_size
         self.val_set_number = val_set_number
         self.drum_list_path = drum_list_path
@@ -40,8 +41,8 @@ class DataLoader():
         self.is_training = is_training
         self.dataset_org = None
 
-        if preprocess_args is not None:
-            self.reset_args(preprocess_args)
+        if args is not None:
+            self.reset_args(args)
 
     def reset_args(self, args):
         # arguments setting
@@ -51,13 +52,15 @@ class DataLoader():
                 self.batch_size = self.args['batch_size']
             if self.val_set_number is None:
                 self.val_set_number = self.args['val_set_number']
-            self.feature_names = self.args['feature_names']
+            if self.feature_names is None:
+                self.feature_names = self.args['feature_names']
         elif isinstance(args, argparse.Namespace):
             if self.batch_size is None:
                 self.batch_size = self.args.batch_size
             if self.val_set_number is None:
                 self.val_set_number = self.args.val_set_number
-            self.feature_names = self.args.features_names
+            if self.feature_names is None:
+                self.feature_names = self.args.features
         else:
             raise ValueError('unknown args')
 
