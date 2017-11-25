@@ -105,9 +105,10 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
             file.write('%f\t' % param)
         elif type(param) == list and type(param[0]) == str:
             for p in param:
-                file.write("%s\t" % p)
+                file.write('%s ' % p)
+            file.write('\t')
         elif type(param) == bool:
-            file.write("%s\t" % p)
+            file.write('%s\t' % p)
         else:
             raise ValueError('param type error, {}: {}'.format(key, type(param)))
 
