@@ -56,8 +56,6 @@ def main(args):
     model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
 
     train(model, train_dataloader, args)
-    session.close()
-
 
 
 def train(model, train_dataloader, valid_dataloader, args):
@@ -145,6 +143,7 @@ def train(model, train_dataloader, valid_dataloader, args):
 
     log.info("Training Finished!")
     summary_writer.close()
+    session.close()
 
     return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, epoch_best
 
