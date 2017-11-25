@@ -1,8 +1,9 @@
 import time
 import os
 import argparse
-# from pathlib import Path
 import json
+import uuid
+from datetime import datetime
 
 import tensorflow as tf
 import numpy as np
@@ -85,6 +86,7 @@ def train(model, train_dataloader, valid_dataloader, args):
     valid_acc_best = -1e10
     f1_best = -1e10
     epoch_best = 0
+    unique_key = uuid.uuid1().hex[:6]
 
     for epoch in range(args['max_epochs']):
         train_loss = 0
@@ -111,9 +113,14 @@ def train(model, train_dataloader, valid_dataloader, args):
 
         if avg_f1_score > f1_best:
             if not args['no_save_ckpt']:
+                log.info("Saving best ckpt.....")
+                #ckpt_filename = os.path.join(args['train_dir'], args['tag_label'], args['model']) \
+                #                + "-bs{}".format(args['batch_size']) \
+                #                + "-val{}".format(args['val_set_number']) \
+                #                + "-{}".format(uuid.uuid1().hex[:6])
                 ckpt_filename = os.path.join(args['train_dir'], args['tag_label'], args['model']) \
-                                + "-bs{}".format(args['batch_size']) \
-                                + "-val{}".format(args['val_set_number'])
+                        + "-{}".format(datetime.now().strftime("%y%m%d%H%M%S")) \
+                        + "-{}".format(unique_key)
                 saver.save(session, ckpt_filename)
 
             train_loss_best = train_loss
@@ -141,11 +148,12 @@ def train(model, train_dataloader, valid_dataloader, args):
                  "train_loss: {:.5f} | train_acc: {:.5f} | valid_loss: {:.5f} | valid_acc: {:.5f}".format(
                     int(step), real_epoch, elapsed_time, train_loss, train_acc, valid_loss, valid_acc))
 
+
     log.info("Training Finished!")
     summary_writer.close()
     session.close()
 
-    return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, epoch_best
+    return unique_key, train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, f1_best, epoch_best
 
 
 def valid_full(step, model, valid_dataloader, session, args, summary_writer=None):

@@ -3,10 +3,15 @@ import logging
 from datetime import datetime
 from collections import Counter
 import argparse
-# from pathlib import Path
+import getpass
+import copy
+
 import os
 import settings
 import numpy as np
+import pandas as pd
+
+from settings import PROJECT_ROOT
 
 
 def get_logger(logger_name, log_file=None, level=logging.DEBUG):
@@ -80,44 +85,65 @@ def get_random_param(param_list_dict):
     return param_dict
 
 
-def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch):
+#def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch):
+#    filename = param_dict['train_batch_result_filename']
+#
+#    if not os.path.exists(filename):
+#        file = open(filename, 'w')
+#        for key in param_dict.keys():
+#            file.write(key + '\t')
+#        file.write('train_cost\t')
+#        file.write('train_acc\t')
+#        file.write('valid_cost\t')
+#        file.write('valid_acc\t')
+#        file.write('epoch\n')
+#    else:
+#        file = open(filename, 'a')
+#
+#    for key in param_dict.keys():
+#        param = param_dict[key]
+#        if type(param) == str:
+#            file.write('%s\t' % param)
+#        elif type(param) == int:
+#            file.write('%d\t' % param)
+#        elif type(param) == float:
+#            file.write('%f\t' % param)
+#        elif type(param) == list and type(param[0]) == str:
+#            for p in param:
+#                file.write('%s ' % p)
+#            file.write('\t')
+#        elif type(param) == bool:
+#            file.write('%s\t' % p)
+#        else:
+#            raise ValueError('param type error, {}: {}'.format(key, type(param)))
+#
+#    file.write('%f\t' % (train_cost))
+#    file.write('%f\t' % (train_acc))
+#    file.write('%f\t' % (valid_cost))
+#    file.write('%f\t' % (valid_acc))
+#    file.write('%d\n' % (epoch))
+#    file.close()
+#
+#
+def write_param(prm_dict, **kwargs):
+    """kwargs:  train_cost, train_acc, valid_cost, valid_acc, epoch
+    """
+    assert isinstance(prm_dict, dict)
+    param_dict = copy.deepcopy(prm_dict)
+
+    kwargs.update({"username": getpass.getuser()})
+    param_dict.update(kwargs)
     filename = param_dict['train_batch_result_filename']
+    filepath = os.path.join(PROJECT_ROOT, filename)
 
-    if not os.path.exists(filename):
-        file = open(filename, 'w')
-        for key in param_dict.keys():
-            file.write(key + '\t')
-        file.write('train_cost\t')
-        file.write('train_acc\t')
-        file.write('valid_cost\t')
-        file.write('valid_acc\t')
-        file.write('epoch\n')
+    if not os.path.exists(filepath):
+        df = pd.DataFrame()  # param_dict inside X
+        df = df.append(param_dict, ignore_index=True)
     else:
-        file = open(filename, 'a')
+        df = pd.read_csv(filepath, header=0, delimiter="\t")
+        df = df.append(param_dict, ignore_index=True)
 
-    for key in param_dict.keys():
-        param = param_dict[key]
-        if type(param) == str:
-            file.write('%s\t' % param)
-        elif type(param) == int:
-            file.write('%d\t' % param)
-        elif type(param) == float:
-            file.write('%f\t' % param)
-        elif type(param) == list and type(param[0]) == str:
-            for p in param:
-                file.write('%s ' % p)
-            file.write('\t')
-        elif type(param) == bool:
-            file.write('%s\t' % p)
-        else:
-            raise ValueError('param type error, {}: {}'.format(key, type(param)))
-
-    file.write('%f\t' % (train_cost))
-    file.write('%f\t' % (train_acc))
-    file.write('%f\t' % (valid_cost))
-    file.write('%f\t' % (valid_acc))
-    file.write('%d\n' % (epoch))
-    file.close()
+    df.to_csv(filepath, sep="\t", index=False)
 
 
 def calculate_average_F1_score(pred_lists, label_lists):
