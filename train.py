@@ -55,22 +55,22 @@ def main(args):
     model = utils.find_class_by_name([models], args.model)(args)
     model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
 
+    train(model, train_dataloader, args)
+    session.close()
+
+
+
+def train(model, train_dataloader, valid_dataloader, args):
+    """
+    Args:
+        args (dict)
+    """
     session = tf.Session(config=tf.ConfigProto(
         gpu_options=tf.GPUOptions(allow_growth=True),
         log_device_placement=False,
         allow_soft_placement=True)
     )
 
-    train(model, train_dataloader, args)
-    session.close()
-
-
-
-def train(model, session, train_dataloader, valid_dataloader, args):
-    """
-    Args:
-        args (dict)
-    """
     saver = _set_saver(session, args)
     summary_writer = tf.summary.FileWriter(
         os.path.join(args['train_dir'], args['tag_label']), flush_secs=10, filename_suffix=args['tag_label'])
@@ -191,7 +191,7 @@ def valid_full(step, model, valid_dataloader, session, args, summary_writer=None
     #          "Valid loss: {:.5f} | Valid accuracy: {:.5f}".format(
     #             int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
 
-    for line in classification_report(y_trues, y_preds).split("\n"):
+    for line in classification_report(y_trues.ravel().astype(int), y_preds.ravel().astype(int)).split("\n"):
         print(line)
     #print(confusion_matrix(y_trues, y_preds))
 

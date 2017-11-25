@@ -2,6 +2,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+import utils
+
 class Augmentation:
     """Augmentation executes existing data augmentation related arguments.
     All augmentation is done in DataLoader.
@@ -12,10 +14,8 @@ class Augmentation:
         if args is None:
             # default
             self.max_noise = 0.4
-        elif isinstance(args, dict):
-            self.max_noise = args['max_noise']
-        elif isinstance(args, argparse.Namespace):
-            self.max_noise = args.max_noise
+        elif isinstance(args, dict) or isinstance(args, argparse.Namespace):
+            self.max_noise = utils.get_arg(args, 'max_noise')
         else:
             raise ValueError('unknown augmentation_args')
 

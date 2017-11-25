@@ -140,8 +140,6 @@ class Preprocessor:
         return X
 
 
-
-
     @staticmethod
     def height_to_channel(X, target_height, feature_indices):
 

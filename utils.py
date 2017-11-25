@@ -103,8 +103,13 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
             file.write('%d\t' % param)
         elif type(param) == float:
             file.write('%f\t' % param)
+        elif type(param) == list and type(param[0]) == str:
+            for p in param:
+                file.write("%s\t" % p)
+        elif type(param) == bool:
+            file.write("%s\t" % p)
         else:
-            raise ValueError('param type error')
+            raise ValueError('param type error, {}: {}'.format(key, type(param)))
 
     file.write('%f\t' % (train_cost))
     file.write('%f\t' % (train_acc))
