@@ -6,9 +6,16 @@ __pycache__/
 # Exclude dataset/
 dataset/
 
+# checkpoint
+checkpoint
+
+# .idea/
+.idea/
+
 # C extensions
 *.so
 *.mp3
+
 
 # Distribution / packaging
 .Python
