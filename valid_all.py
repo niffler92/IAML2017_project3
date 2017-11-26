@@ -25,7 +25,7 @@ def train_batch():
     saver = tf.train.Saver()
     session = tf.Session()
     saver.restore(session, checkpoint_path)
-    avg_acc, avg_loss, avg_f1_score = valid_full(0, model, valid_dataloader, session, param_dict)
+    avg_acc, avg_loss, avg_f1_score, _, __ = valid_full(0, model, valid_dataloader, session, param_dict)
     session.close()
 
     if max_f1_score < avg_f1_score:

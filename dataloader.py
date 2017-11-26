@@ -3,6 +3,7 @@ import pickle
 import time
 from random import shuffle
 import copy
+import re
 
 import numpy as np
 import pandas as pd
@@ -46,6 +47,10 @@ class DataLoader():
             self.reset_args(args)
 
     def reset_args(self, args):
+        # In case of reading from txt, problem occurs because pandas reads list as str
+        if isinstance(args['feature_names'], str):
+            args['feature_names'] = re.findall("[a-zA-Z]+", args['feature_names'])
+
         # arguments setting
         self.args = args
 
@@ -109,7 +114,7 @@ class DataLoader():
 
     def batch_generator(self):
         while True:
-            if self.pointer % self.num_batch == 0:  # Shuffle every epoch
+            if self.pointer % self.num_batch == 0 and self.is_training:
                 ind_list = [i for i in range(len(self.metadata_df))]
                 shuffle(ind_list)
                 self.dataset = self.dataset[ind_list]

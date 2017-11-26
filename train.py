@@ -9,7 +9,6 @@ import tensorflow as tf
 import numpy as np
 from sklearn.metrics import confusion_matrix, classification_report, f1_score
 
-
 from dataloader import DataLoader
 import models
 import utils
@@ -52,11 +51,12 @@ if __name__ == '__main__':
 def main(args):
     with tf.device("/gpu:0"):  # Is there any better way?
         train_dataloader = DataLoader(batch_size=args.batch_size, args=args, is_training=True)
+        valid_dataloader = DataLoader(batch_size=args.batch_size, args=args, is_training=False)
 
     model = utils.find_class_by_name([models], args.model)(args)
     model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
 
-    train(model, train_dataloader, args)
+    train(model, train_dataloader, valid_dataloader, args)
 
 
 def train(model, train_dataloader, valid_dataloader, args):
@@ -109,7 +109,7 @@ def train(model, train_dataloader, valid_dataloader, args):
             if step % args['step_save_summaries'] == 0:
                 summary_writer.add_summary(summary, global_step=step)
 
-        valid_acc, valid_loss, avg_f1_score = valid_full(step, model, valid_dataloader, session, args, summary_writer=summary_writer)
+        valid_acc, valid_loss, avg_f1_score, _, __ = valid_full(step, model, valid_dataloader, session, args, summary_writer=summary_writer)
 
         if avg_f1_score > f1_best:
             if not args['no_save_ckpt']:
@@ -167,26 +167,30 @@ def valid_full(step, model, valid_dataloader, session, args, summary_writer=None
     st = time.time()
     y_preds = []
     y_trues = []
+    y_logits = []
 
     for _ in range(total_batch):
         batch_x, batch_y, track_ids = valid_dataloader.next_batch()
-        summary, loss_, acc_, y_pred, y_true = session.run(
+        summary, loss_, acc_, y_pred, y_true, y_logit = session.run(
             [model.summary_valid, model.loss_valid, model.acc_valid,
-             model.y_pred, model.y_true], feed_dict={model.x: batch_x, model.y: batch_y})
+             model.y_pred, model.y_true, model.logits], feed_dict={model.x: batch_x, model.y: batch_y})
 
 
         avg_loss += loss_ / total_batch
         avg_acc += acc_ / total_batch
-        # y_pred (3, 200)
         y_preds.append(y_pred)
+        y_logits.append(y_logit)
         y_trues.append(y_true)
 
-    y_preds = np.concatenate(y_preds)
+    y_preds = np.concatenate(y_preds)  # (N ,3, 200)
+    y_logits = np.concatenate(y_logits)
     y_trues = np.concatenate(y_trues)
     y_preds = y_preds.transpose([1, 0, 2])
+    y_logits = y_logits.transpose([1, 0, 2])
     y_trues = y_trues.transpose([1, 0, 2])
     y_preds = y_preds.reshape([3, -1])
-    y_trues = y_trues.reshape([3, -1])
+    y_logits = y_logits.reshape([3, -1])
+    y_trues = y_trues.reshape([3, -1])  # (3, 200*N)
 
     if (summary_writer is not None) and (step % args['step_save_summaries'] == 0):
         summary_writer.add_summary(summary, global_step=step)
@@ -204,7 +208,7 @@ def valid_full(step, model, valid_dataloader, session, args, summary_writer=None
 
     avg_f1_score = utils.calculate_average_F1_score(y_preds.tolist(), y_trues.tolist())
 
-    return avg_acc, avg_loss, avg_f1_score
+    return avg_acc, avg_loss, avg_f1_score, y_logits, y_trues
 
 
 def _set_saver(session, args):

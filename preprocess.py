@@ -142,6 +142,7 @@ class Preprocessor:
 
     @staticmethod
     def height_to_channel(X, target_height, feature_indices):
+        target_height = int(target_height)
 
         def _height_resize(data, h_new):
             if np.ndim(data) == 2:
