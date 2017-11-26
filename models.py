@@ -160,3 +160,73 @@ class CNN(BaseModel):  # FIXME Example
             self.loss_train = loss
             self.loss_valid = loss
 
+
+class CNN100(BaseModel):
+    def __init__(self, args):
+        BaseModel.__init__(self, args)  # for python 2.7 compatibility (need to be confirmed)
+
+    def _create_placeholders(self):
+        self.x = tf.placeholder(dtype=tf.float32,
+                                shape=[None, self.args['height'], self.args['width'], self.args['depth']], name="x")
+        self.y = tf.placeholder(dtype=tf.float32, shape=[None, 3, 200], name="y")
+
+    def _create_network(self, is_training):
+        """is_training must be tensorflow bool type when executing train and eval at the same time.
+        """
+        weight_reg = slim.l2_regularizer(self.args['l2_loss_scale'])
+        bn = lambda x: slim.batch_norm(x, is_training=is_training)
+
+        bn_index = self.args['bn_layers']
+        bn_list = [None, None, None, None]
+        bn_list[int(bn_index % 2 * 1)] = bn
+        bn_list[int((bn_index/2) % 2 * 2)] = bn
+        bn_list[int((bn_index/4) % 2 * 3)] = bn
+
+        layer = modules.layer_block_reg(self.x, self.args['h4'], self.args['h4'],
+                                     self.args['activation'], weight_reg, bn_list[1], 1)
+        layer = modules.layer_block_reg(layer, self.args['h4']*2, self.args['h4'] * 2,
+                                     self.args['activation'], weight_reg, bn_list[2], 2)
+        layer = modules.layer_block_reg(layer, self.args['h4']*4, self.args['h4'] * 4,
+                                     self.args['activation'], weight_reg, bn_list[3], 3)
+
+        extra_1x1_conv = self.args['extra_1x1_conv']
+        if extra_1x1_conv != 0:
+            layer = slim.conv2d(layer, extra_1x1_conv, 1, scope="layer_4", weights_regularizer=weight_reg)
+
+        layer = slim.conv2d(layer, 3, 1, scope="layer_final", weights_regularizer=weight_reg)
+
+        layer = tf.squeeze(layer, axis=1)
+        assert layer.shape.ndims == 3
+        layer = tf.transpose(layer, [0, 2, 1])  # (B, 3, 200)
+
+        with tf.variable_scope("output"):
+            self.logits = layer
+            self.y_pred = tf.cast(tf.greater(self.logits, 0), dtype=tf.float32)
+
+            self.y_true = self.y
+            correct_pred = tf.equal(self.y_pred, self.y_true)
+            accuracy = tf.reduce_mean(tf.cast(correct_pred, "float"), name="accuracy")
+            self.acc_train = accuracy
+            self.acc_valid = accuracy
+
+    def _create_loss(self):
+        with tf.variable_scope("loss"):
+            gamma = self.args['focal_loss_gamma_list']
+            if gamma == 0:
+                loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.y, logits=self.logits)
+            else:
+                p = tf.nn.sigmoid(self.logits)
+                labels = self.y
+
+                loss1_weight = self.args['loss1_weight']
+
+                loss = -loss1_weight * labels * tf.pow((1 - p), gamma) * tf.log(p) \
+                         - (1 - loss1_weight) * (1 - labels) * tf.pow(p, gamma) * tf.log(1 - p)
+
+                loss_reduce_max_index = self.args['loss_reduce_max_index']
+                if loss_reduce_max_index > 0:
+                    loss = tf.reduce_max(loss, loss_reduce_max_index)
+                loss = tf.reduce_mean(loss)
+
+            self.loss_train = loss
+            self.loss_valid = loss
