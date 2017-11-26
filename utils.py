@@ -149,8 +149,8 @@ def write_param(prm_dict, **kwargs):
 def calculate_average_F1_score(pred_lists, label_lists):
     # calculate average F1 score (hihat, kick, snare)
     # shape of each list is 3*200
-
     avg_f1_score = 0
+    n = 0
     for pred_list, label_list in zip(pred_lists, label_lists):
         counts = Counter(zip(pred_list, label_list))
         tp = counts[1,1]
@@ -172,9 +172,10 @@ def calculate_average_F1_score(pred_lists, label_lists):
             f1 = 0
         avg_f1_score+=f1
 
+        n +=1
         # print(precision, recall, f1)
+    avg_f1_score /= n
 
-    avg_f1_score /= 3
     return avg_f1_score
 
 

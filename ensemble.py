@@ -49,15 +49,16 @@ def ensemble(args):
         )
         restore_session(session, param_dict)
 
-        _, _, _, y_logit, y_true = valid_full(0, model, valid_dataloader, session, param_dict)
+        _, _, f1 , y_logit, y_true = valid_full(0, model, valid_dataloader, session, param_dict)
         session.close()
 
         assert y_logit.shape == (3, 87*200)
         assert y_true.shape == (3, 87*200)
 
-        print("F1 by jogyo.... : {}".format(utils.calculate_average_F1_score(np.greater(y_logit, 0).astype(int), y_true)))
-        print("F1 by sklearn : {}".format(f1_score(y_true.ravel().tolist(), np.greater(y_logit, 0).ravel().tolist())))
-        print("Result valid_f1: {}".format(param_dict['valid_f1']))
+        y_pred = np.greater(y_logit, 0).astype(int)
+        print("(Full validation) F1 by jogyo.... : {}".format(utils.calculate_average_F1_score(y_pred.tolist(), y_true.tolist())))
+        print("(Full validation) F1 by sklearn : {}".format(f1_score(list(y_true.reshape([-1])), list(y_pred.reshape([-1])))))
+        print("(Part validation) table valid_f1: {}".format(param_dict['valid_f1']))
         y_logit = y_logit.reshape([1, -1])
         y_true = y_true.reshape([1, -1])
 
@@ -81,15 +82,15 @@ def ensemble(args):
     else:
         raise ValueError("Invalid criterion type: {}".format(criterion))
 
-    y_preds_list = y_preds.ravel().tolist()
-    y_trues_list = y_trues.ravel().tolist()
+    y_preds_list = y_preds.reshape([-1]).tolist()
+    y_trues_list = y_trues.reshape([-1]).tolist()
 
     print("#############ENSEMBLE RESULT##############")
     for line in classification_report(y_trues_list, y_preds_list).split("\n"):
         print(line)
     print(confusion_matrix(y_trues_list, y_preds_list))
-    print("(jogyo) F1_score: {}".format(utils.calculate_average_F1_score(y_preds.tolist(), y_trues.tolist())))
-    print("(sklearn) F1_score: {}".format(f1_score(y_trues_list, y_preds_list)))
+    print("(Full validation) (jogyo) F1_score: {}".format(utils.calculate_average_F1_score(y_preds.tolist(), y_trues.tolist())))
+    print("(Full validation) (sklearn) F1_score: {}".format(f1_score(y_trues_list, y_preds_list)))
 
 
 def get_best_hyperparams(filename, criterion, i, pass_empty):

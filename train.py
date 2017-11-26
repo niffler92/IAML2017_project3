@@ -202,9 +202,12 @@ def valid_full(step, model, valid_dataloader, session, args, summary_writer=None
     #          "Valid loss: {:.5f} | Valid accuracy: {:.5f}".format(
     #             int(step), real_epoch, elapsed_time, avg_loss, avg_acc))
 
-    for line in classification_report(y_trues.ravel().astype(int), y_preds.ravel().astype(int)).split("\n"):
+    y_trues_list = y_trues.ravel().astype(int)
+    y_preds_list = y_preds.ravel().astype(int)
+
+    for line in classification_report(y_trues_list, y_preds_list).split("\n"):
         print(line)
-    #print(confusion_matrix(y_trues, y_preds))
+    print(confusion_matrix(y_trues_list, y_preds_list))
 
     avg_f1_score = utils.calculate_average_F1_score(y_preds.tolist(), y_trues.tolist())
 
