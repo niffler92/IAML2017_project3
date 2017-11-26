@@ -118,7 +118,7 @@ def train(model, train_dataloader, valid_dataloader, args):
                 #                + "-bs{}".format(args['batch_size']) \
                 #                + "-val{}".format(args['val_set_number']) \
                 #                + "-{}".format(uuid.uuid1().hex[:6])
-                ckpt_filename = os.path.join(args['train_dir'], args['tag_label'], args['model']) \
+                ckpt_filename = os.path.join(args['train_dir'], args['tag_label'], unique_key, args['model'] ) \
                         + "-{}".format(datetime.now().strftime("%y%m%d%H%M%S")) \
                         + "-{}".format(unique_key)
                 saver.save(session, ckpt_filename)

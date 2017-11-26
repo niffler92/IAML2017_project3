@@ -53,34 +53,43 @@ def ensemble(args):
         session.close()
 
         assert y_logit.shape == (3, 87*200)
-        assert y_true.shape[0] == (3, 87*200)
+        assert y_true.shape == (3, 87*200)
+
+        print("F1 by jogyo.... : {}".format(utils.calculate_average_F1_score(np.greater(y_logit, 0).astype(int), y_true)))
+        print("F1 by sklearn : {}".format(f1_score(y_true.ravel().tolist(), np.greater(y_logit, 0).ravel().tolist())))
+        print("Result valid_f1: {}".format(param_dict['valid_f1']))
         y_logit = y_logit.reshape([1, -1])
         y_true = y_true.reshape([1, -1])
 
         if i == 0:
             y_logits = y_logit
-            y_trues = y_true
+            y_trues = y_true.astype(int)
         else:
             y_logits = np.concatenate((y_logits, y_logit), axis=0)
-            assert y_trues == y_true, "Must return same true values"
+            assert np.equal(y_trues, y_true).sum() == np.prod(y_true.shape), "Must return same true values"
 
-    if criterion == "average":
+    if method == "average":
         y_logits = np.mean(y_logits, axis=0)
         y_preds = np.greater(y_logits, 0).astype(int)
-    elif criterion == "vote":
+    elif method == "vote":
         y_logits = np.greater(y_logits, 0).astype(int)
         one_counts = np.count_nonzero(y_logits, axis=0)
+        zero_counts = max_models - one_counts
         # Warning: Predicts Tie as 1 if (max_models % 2 == 0)
-        y_preds = np.greater_equal(one_counts, max_models - one_counts).astype(int)
+        y_preds = np.greater_equal(one_counts, zero_counts).astype(int)
+        y_preds = y_preds.reshape([1, -1])
     else:
         raise ValueError("Invalid criterion type: {}".format(criterion))
 
-    print("#############ENSEMBLE RESULT##############")
-    for line in classification_report(y_trues, y_preds).split("\n"):
-        print(line)
-    print(confusion_matrix(y_trues, y_preds))
-    print("F1_score: {}".format(f1_score(y_trues, y_preds)))
+    y_preds_list = y_preds.ravel().tolist()
+    y_trues_list = y_trues.ravel().tolist()
 
+    print("#############ENSEMBLE RESULT##############")
+    for line in classification_report(y_trues_list, y_preds_list).split("\n"):
+        print(line)
+    print(confusion_matrix(y_trues_list, y_preds_list))
+    print("(jogyo) F1_score: {}".format(utils.calculate_average_F1_score(y_preds.tolist(), y_trues.tolist())))
+    print("(sklearn) F1_score: {}".format(f1_score(y_trues_list, y_preds_list)))
 
 
 def get_best_hyperparams(filename, criterion, i, pass_empty):
@@ -98,10 +107,10 @@ def get_best_hyperparams(filename, criterion, i, pass_empty):
 
     while True:
         best_params = df_result.iloc[i+pass_empty].to_dict()
-        ckpt_path = os.path.join(PROJECT_ROOT, best_params['train_dir'], best_params['tag_label'], "*{}*".format(best_params['unique_key']))
+        ckpt_path = os.path.join(PROJECT_ROOT, best_params['train_dir'], best_params['tag_label'], best_params['unique_key'], "*{}*".format(best_params['unique_key']))
         ckpt_list = glob.glob(ckpt_path)
         if len(ckpt_list) == 3:
-            break;
+            break
         else:
             log.warning("Result with unique key({}) doesn't have ckpt files in the directory. "
                         "It has been trained to save ckpt. Proceeding to next best model...")
@@ -115,13 +124,19 @@ def restore_session(session, param_dict):
     session.run(tf.global_variables_initializer())
     session.run(tf.local_variables_initializer())
 
-    ckpt_path = os.path.join(PROJECT_ROOT, param_dict['train_dir'], param_dict['tag_label'], "*{}*".format(param_dict['unique_key']))
-    ckpt_list = glob.glob(ckpt_path)
-    data_path = [ckpt for ckpt in ckpt_list if '.data' in ckpt][0]
+    ckpt_path = os.path.join(PROJECT_ROOT, param_dict['train_dir'], param_dict['tag_label'], param_dict['unique_key']) #, "*{}*".format(param_dict['unique_key']))
+    #ckpt_list = glob.glob(ckpt_path)
+    #data_path = [ckpt for ckpt in ckpt_list if '.data' in ckpt][0]
 
     try:
-        log.info("Restoring from {}".format(data_path))
-        saver.restore(session, data_path)
+        if os.path.isdir(ckpt_path):
+            old_checkpoint_path = ckpt_path
+            ckpt_path = tf.train.latest_checkpoint(ckpt_path)
+            log.info("Update checkpoint_path: {} -> {}".format(
+                old_checkpoint_path, ckpt_path)
+            )
+        log.info("Restoring from {}".format(ckpt_path))
+        saver.restore(session, ckpt_path)
     except:
         raise Exception("Something is wrong with ckpt.")
 
@@ -131,7 +146,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--max_models", default=3, type=int)
     parser.add_argument("--criterion", default="valid_f1", type=str, choices=["valid_f1", "valid_acc"])
-    parser.add_argument("--method", default="average", type=str, choices=["average", "vote"])
+    parser.add_argument("--method", default="vote", type=str, choices=["average", "vote"])
     parser.add_argument("--filename", default="log/batch_log/result_experiment.txt", type=str)
 
     args = parser.parse_args()

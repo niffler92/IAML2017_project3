@@ -50,6 +50,8 @@ class DataLoader():
         # In case of reading from txt, problem occurs because pandas reads list as str
         if isinstance(args['feature_names'], str):
             args['feature_names'] = re.findall("[a-zA-Z]+", args['feature_names'])
+        if isinstance(args['batch_size'], float):
+            args['batch_size'] = int(args['batch_size'])
 
         # arguments setting
         self.args = args
@@ -114,7 +116,7 @@ class DataLoader():
 
     def batch_generator(self):
         while True:
-            if self.pointer % self.num_batch == 0 and self.is_training:
+            if self.pointer % self.num_batch == 0 and self.is_training and not self.total_validation:
                 ind_list = [i for i in range(len(self.metadata_df))]
                 shuffle(ind_list)
                 self.dataset = self.dataset[ind_list]
