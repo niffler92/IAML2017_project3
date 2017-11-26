@@ -110,18 +110,18 @@ def get_best_hyperparams(filename, criterion, i, pass_empty):
         best_params = df_result.iloc[i+pass_empty].to_dict()
         ckpt_path = os.path.join(PROJECT_ROOT, best_params['train_dir'], best_params['tag_label'], best_params['unique_key'], "*{}*".format(best_params['unique_key']))
         ckpt_list = glob.glob(ckpt_path)
-        if len(ckpt_list) == 3:
+        if len(ckpt_list) >= 3:
             break
         else:
-            log.warning("Result with unique key({}) doesn't have ckpt files in the directory. "
-                        "It has been trained to save ckpt. Proceeding to next best model...")
+            log.warning("Result with unique key({}) doesn't have ckpt files in the directory: {}. "
+                        "It has been trained to save ckpt. Proceeding to next best model...".format(best_params['unique_key'], ckpt_list[0]))
             pass_empty += 1
 
     return best_params, pass_empty
 
 
 def restore_session(session, param_dict):
-    saver = tf.train.Saver(tf.global_variables())
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
     session.run(tf.global_variables_initializer())
     session.run(tf.local_variables_initializer())
 
