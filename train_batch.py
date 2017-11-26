@@ -5,6 +5,7 @@ import tensorflow as tf
 from params import param_batch as param
 import utils
 from train import *
+import numpy as np
 
 
 
@@ -55,7 +56,7 @@ def train_batch():
     train_acc = np.average(train_acc_list)
     valid_loss = np.average(valid_loss_list)
     valid_acc = np.average(valid_acc_list)
-    vlaid_f1_list = np.average(valid_f1_list)
+    valid_f1 = np.average(valid_f1_list)
     epoch = np.max(epoch_list)
 
     print('train_loss(%.4f), train_acc(%.4f), valid_loss(%.4f), valid_acc(%.4f), valid_f1(%.4f) epoch(%d)' % (train_loss, train_acc, valid_loss, valid_acc, valid_f1, epoch))
