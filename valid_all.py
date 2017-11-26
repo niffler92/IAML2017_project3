@@ -1,7 +1,7 @@
 
 from dataloader import DataLoader
 import tensorflow as tf
-from params import param_base as param
+from params import param_default as param
 import utils
 from train import *
 
@@ -15,13 +15,13 @@ def train_batch():
   valid_dataloader.reset_args(param_dict)
 
   model = utils.find_class_by_name([models], param_dict['model'])(param_dict)
-  model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
+  model.build_graph(is_training=tf.constant(False, dtype=tf.bool))
 
   max_f1_score = 0
   max_acc = 0
 
   for i in range(3):
-    checkpoint_path = os.path.join('checkpoint', 'CNN_BASE', 'CNN-bs32-val' + str(i))
+    checkpoint_path = os.path.join('checkpoint', 'CNN100_try9' + str(i), 'CNN100-bs29-val')
     saver = tf.train.Saver()
     session = tf.Session()
     saver.restore(session, checkpoint_path)

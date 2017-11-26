@@ -80,10 +80,18 @@ def get_random_param(param_list_dict):
     return param_dict
 
 
-def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch):
-    filename = param_dict['train_batch_result_filename']
+def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, valid_f1, epoch, filename=None):
+
+    if valid_f1 < 0.8:
+        return
+
+    if filename is None:
+        filename = param_dict['train_batch_result_filename']
 
     if not os.path.exists(filename):
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+
         file = open(filename, 'w')
         for key in param_dict.keys():
             file.write(key + '\t')
@@ -91,6 +99,7 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
         file.write('train_acc\t')
         file.write('valid_cost\t')
         file.write('valid_acc\t')
+        file.write('valid_f1\t')
         file.write('epoch\n')
     else:
         file = open(filename, 'a')
@@ -105,9 +114,10 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
             file.write('%f\t' % param)
         elif type(param) == list and type(param[0]) == str:
             for p in param:
-                file.write("%s\t" % p)
+                file.write("%s_" % p)
+            file.write("\t")
         elif type(param) == bool:
-            file.write("%s\t" % p)
+            file.write("%s\t" % param)
         else:
             raise ValueError('param type error, {}: {}'.format(key, type(param)))
 
@@ -115,6 +125,7 @@ def write_param(param_dict, train_cost, train_acc, valid_cost, valid_acc, epoch)
     file.write('%f\t' % (train_acc))
     file.write('%f\t' % (valid_cost))
     file.write('%f\t' % (valid_acc))
+    file.write('%f\t' % (valid_f1))
     file.write('%d\n' % (epoch))
     file.close()
 

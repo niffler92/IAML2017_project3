@@ -1,4 +1,5 @@
 import time
+import glob
 import os
 import argparse
 # from pathlib import Path
@@ -55,22 +56,22 @@ def main(args):
     model = utils.find_class_by_name([models], args.model)(args)
     model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
 
-    train(model, train_dataloader, args)
-    session.close()
-
-
-
-def train(model, train_dataloader, valid_dataloader, args):
-    """
-    Args:
-        args (dict)
-    """
     session = tf.Session(config=tf.ConfigProto(
         gpu_options=tf.GPUOptions(allow_growth=True),
         log_device_placement=False,
         allow_soft_placement=True)
     )
 
+    train(model, train_dataloader, args)
+    session.close()
+
+
+
+def train(model, session, train_dataloader, valid_dataloader, args):
+    """
+    Args:
+        args (dict)
+    """
     saver = _set_saver(session, args)
     summary_writer = tf.summary.FileWriter(
         os.path.join(args['train_dir'], args['tag_label']), flush_secs=10, filename_suffix=args['tag_label'])
@@ -95,6 +96,7 @@ def train(model, train_dataloader, valid_dataloader, args):
         y_preds = []
         y_trues = []
 
+
         for _ in range(total_batch):
             batch_x, batch_y, track_ids = train_dataloader.next_batch()
             _, loss_, acc_, step, summary, y_pred, y_true, logits = session.run(
@@ -109,14 +111,26 @@ def train(model, train_dataloader, valid_dataloader, args):
             if step % args['step_save_summaries'] == 0:
                 summary_writer.add_summary(summary, global_step=step)
 
+        if epoch % args['valid_epoch'] != args['valid_epoch']-1:
+            continue
+
         valid_acc, valid_loss, avg_f1_score = valid_full(step, model, valid_dataloader, session, args, summary_writer=summary_writer)
 
         if avg_f1_score > f1_best:
             if not args['no_save_ckpt']:
-                ckpt_filename = os.path.join(args['train_dir'], args['tag_label'], args['model']) \
-                                + "-bs{}".format(args['batch_size']) \
-                                + "-val{}".format(args['val_set_number'])
+
+                output_path = os.path.join(args['train_dir'], args['tag_label'])
+                ckpt_filename = os.path.join(output_path, args['model']) \
+                                + "-bs{}".format(args['batch_size'])
                 saver.save(session, ckpt_filename)
+
+                f1_path = os.path.join(output_path, 'avg_f1_score_%.4f' % avg_f1_score)
+
+                for fl in glob.glob(os.path.join(output_path, 'avg_f1_score_*')):
+                    os.remove(fl)
+
+                # open(f1_path, 'wb')
+                utils.write_param(args, train_loss, train_acc, valid_loss, valid_acc, avg_f1_score, epoch, filename=f1_path)
 
             train_loss_best = train_loss
             train_acc_best = train_acc
@@ -143,10 +157,14 @@ def train(model, train_dataloader, valid_dataloader, args):
                  "train_loss: {:.5f} | train_acc: {:.5f} | valid_loss: {:.5f} | valid_acc: {:.5f}".format(
                     int(step), real_epoch, elapsed_time, train_loss, train_acc, valid_loss, valid_acc))
 
+        if avg_f1_score == 0.0:
+            print('!!!!!!!!!!!!!!!!!!!!!!break!!!!!!!!!!!!!!!!!!!!!!')
+            break
+
     log.info("Training Finished!")
     summary_writer.close()
 
-    return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, epoch_best
+    return train_loss_best, train_acc_best, valid_loss_best, valid_acc_best, f1_best, epoch_best
 
 
 def valid_full(step, model, valid_dataloader, session, args, summary_writer=None):

@@ -14,15 +14,14 @@ def param_list_dict():
   param_list_dict['feature_names'] = [["mfcc", "melspectrogram", "rmse"]]
 
   # preprocessing
-  param_list_dict['gamma_mel'] = range_float(0, 1, 100)
+  param_list_dict['gamma_mel'] = range_float(0, 1, 0.01)
   param_list_dict['norm_type'] = [0, 1, 2, 3]  # 0(no norm), 1(feature-wise), 2(line-wise), 3(mfcc(feature-wise), others(line-wise))
   param_list_dict['target_height'] = [8]
 
   # Augmentation
-  param_list_dict['max_noise'] = range_float(0, 1, 100)
+  param_list_dict['max_noise'] = range_float(0, 1, 0.01)
 
   # model
-  param_list_dict['input_time_len_list'] = [1024]
 
   # hyperparameters
   param_list_dict['batch_size'] = [8, 16, 32, 64]                 # [8, 16, 32, 64]
@@ -41,7 +40,7 @@ def param_list_dict():
   param_list_dict['learning_rate'] = [1e-2, 1e-3, 1e-4]
   param_list_dict['optimizer'] = ['adam']
   param_list_dict['momentum'] = [0.9, 0.95, 0.97, 0.99]
-  param_list_dict['dropout'] = range_float(0.2, 0.8, 6)
+  param_list_dict['dropout'] = range_float(0.2, 0.8, 0.1)
 
   # configs
   param_list_dict['val_set_number'] = [0]
@@ -52,6 +51,7 @@ def param_list_dict():
   param_list_dict['max_epochs'] = [500]
   param_list_dict['no_save_ckpt'] = [True]
   param_list_dict['train_batch_result_filename'] = ['./log/batch_log/result.txt']
+  param_list_dict['valid_epoch'] = [10]
 
 
 

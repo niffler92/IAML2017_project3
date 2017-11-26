@@ -28,6 +28,7 @@ class Augmentation:
         data_std = np.std(X)
         noise_std = np.random.uniform() * data_std * max_noise
         X += np.random.normal(scale = noise_std, size=np.shape(X))
+
         return X
 
 

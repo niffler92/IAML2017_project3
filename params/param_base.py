@@ -21,10 +21,9 @@ def param_list_dict():
   param_list_dict['max_noise'] = [1.0]
 
   # model
-  param_list_dict['input_time_len_list'] = [1024]
 
   # hyperparameters
-  param_list_dict['batch_size'] = [32]                 # [8, 16, 32, 64]
+  param_list_dict['batch_size'] = [29]                 # [8, 16, 32, 64]
   param_list_dict['h4'] = [32]
   param_list_dict['h5'] = [1]
   param_list_dict['h7'] = [64]
