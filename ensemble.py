@@ -50,6 +50,7 @@ def ensemble(args):
         restore_session(session, param_dict)
 
         _, _, _, y_logit, y_true = valid_full(0, model, valid_dataloader, session, param_dict)
+        session.close()
 
         assert y_logit.shape == (3, 87*200)
         assert y_true.shape[0] == (3, 87*200)
@@ -116,7 +117,7 @@ def restore_session(session, param_dict):
 
     ckpt_path = os.path.join(PROJECT_ROOT, param_dict['train_dir'], param_dict['tag_label'], "*{}*".format(param_dict['unique_key']))
     ckpt_list = glob.glob(ckpt_path)
-    data_path = [ckpt for ckpt in ckpt_list if '.data' in ckpt]
+    data_path = [ckpt for ckpt in ckpt_list if '.data' in ckpt][0]
 
     try:
         log.info("Restoring from {}".format(data_path))
