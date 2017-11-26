@@ -72,6 +72,7 @@ def ensemble(args):
     if method == "average":
         y_logits = np.mean(y_logits, axis=0)
         y_preds = np.greater(y_logits, 0).astype(int)
+        y_preds.reshape([1, -1])
     elif method == "vote":
         y_logits = np.greater(y_logits, 0).astype(int)
         one_counts = np.count_nonzero(y_logits, axis=0)
