@@ -69,7 +69,7 @@ def train_batch(tag_label):
 
 if __name__ == "__main__":
 
-  start_index = 1000
+  start_index = 5000
   while True:
     tag_label = 'CNN100_try' + str(start_index)
     train_batch(tag_label)

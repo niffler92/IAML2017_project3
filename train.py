@@ -154,8 +154,8 @@ def train(model, session, train_dataloader, valid_dataloader, args):
 
 
         log.info("Step: {:5d} | Epoch: {:3d} | Elapsed time: {:3.2f} | "
-                 "train_loss: {:.5f} | train_acc: {:.5f} | valid_loss: {:.5f} | valid_acc: {:.5f}".format(
-                    int(step), real_epoch, elapsed_time, train_loss, train_acc, valid_loss, valid_acc))
+                 "train_loss: {:.5f} | train_acc: {:.5f} | valid_loss: {:.5f} | valid_acc: {:.5f} | f1: {:.5f}".format(
+                    int(step), real_epoch, elapsed_time, train_loss, train_acc, valid_loss, valid_acc, avg_f1_score))
 
         if avg_f1_score == 0.0:
             print('!!!!!!!!!!!!!!!!!!!!!!break!!!!!!!!!!!!!!!!!!!!!!')

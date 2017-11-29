@@ -1,26 +1,73 @@
+
 from dataloader import DataLoader
-import numpy as np
-import pickle
-import os
+import tensorflow as tf
+from params import param_cnn100 as param
+import utils
+from train import *
+from params.param_cnn100 import range_float
+from preprocess import Preprocessor
 import matplotlib.pyplot as plt
-from PIL import Image
+import copy
+import librosa
+import numpy as np
 
-# training_loader = DataLoader('dataset/audio_list.csv', 'dataset/labels.pkl', 32, val_set_number = 0, is_training=True)
-# track_features, label_onehot, titles = training_loader.next_batch()
-# track_features : [32, 20, 1723, 1]
-# label_onehot : [32, 3, 200]
+param_list_dict = param.param_list_dict()
+param_dict = utils.get_random_param(param_list_dict)
 
-preproc_dic = {'gamma_mel':0.5, 'norm_type':2, 'target_height':8, 'max_noise':1.0}
-dataloader = DataLoader(preproc_dic)
-features, labels, titles = dataloader.next_batch()
+dataloader = DataLoader(is_training=True)
 
-data = np.concatenate([features[0,:,:,0], features[0,:,:,1], features[0,:,:,2], features[0,:,:,3],
-                  features[0, :, :, 4], features[0, :, :, 5], features[0, :, :, 6], features[0, :, :, 7],
-                  features[0, :, :, 8], features[0, :, :, 9], features[0, :, :, 10], features[0, :, :, 11],
-                  features[0, :, :, 12]], axis=0)
+model = utils.find_class_by_name([models], param_dict['model'])(param_dict)
+model.build_graph(is_training=tf.constant(True, dtype=tf.bool))
 
-plt.figure(1)
-plt.imshow(np.squeeze(data))
-plt.show()
+param_dict = utils.get_random_param(param_list_dict)
 
-temp = 0
+
+dataloader.args = param_dict
+dataloader.batch_size = 1
+dataloader.val_set_number = utils.get_arg(param_dict, 'val_set_number')
+dataloader.feature_names = utils.get_arg(param_dict, 'feature_names')
+dataloader.create_dataset_org()
+
+dataset = copy.deepcopy(dataloader.dataset_org)
+dataloader.metadata_df = dataloader.metadata_df_org.copy(deep=True)
+dataloader.create_batches()  # Get Train/Validation from original
+
+dataloader.args['norm_type'] = 2
+
+img_index = 3
+for gamma in range_float(0.1, 0.9, 0.1):
+  dataloader.args['gamma_mel'] = gamma
+  dataloader.args['gamma_mel'] = 0.2
+
+  dataset = copy.deepcopy(dataloader.dataset_org)
+  preprocessor = Preprocessor(dataset, param_dict, dataloader.is_training, dataloader.feature_names)
+  features = preprocessor.run()
+
+  # features = librosa.power_to_db(features, ref=np.max)
+
+  # data = np.concatenate([features[img_index,:,:,0], features[img_index,:,:,1], features[img_index,:,:,2], features[img_index,:,:,3],
+  #                   features[img_index, :, :, 4], features[img_index, :, :, 5], features[img_index, :, :, 6], features[img_index, :, :, 7],
+  #                   features[img_index, :, :, 8], features[img_index, :, :, 9], features[img_index, :, :, 10], features[img_index, :, :, 11],
+  #                   features[img_index, :, :, 12]], axis=0)
+  #
+  # # data = np.concatenate([features[img_index,:,:,3],
+  # #                   features[img_index, :, :, 4], features[img_index, :, :, 5], features[img_index, :, :, 6], features[img_index, :, :, 7],
+  # #                   features[img_index, :, :, 8], features[img_index, :, :, 9], features[img_index, :, :, 10], features[img_index, :, :, 11]
+  # #                        ], axis=0)
+  #
+  # plt.figure(1)
+  # plt.imshow(np.squeeze(data))
+  # plt.show()
+
+  fig, axes = plt.subplots(13, 1, figsize=(15, 8))
+  fig.subplots_adjust(hspace=.001, wspace=.001)
+
+  axs = axes.ravel()
+  for i in range(13):
+    axs[i].set_xticks([])
+    axs[i].set_yticks([])
+    axs[i].imshow(features[img_index,:, :, i], aspect='auto')
+  plt.show()
+
+
+  temp = 0
